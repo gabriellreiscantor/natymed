@@ -14,221 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
-      estudos: {
+      profiles: {
         Row: {
-          created_at: string
-          dono_id: string | null
+          criado_at: string | null
+          data_nascimento: string | null
+          email: string
+          foto_url: string | null
           id: string
-          is_public: boolean | null
-          questoes: Json | null
-          resumo: string | null
-          titulo: string
-        }
-        Insert: {
-          created_at?: string
-          dono_id?: string | null
-          id?: string
-          is_public?: boolean | null
-          questoes?: Json | null
-          resumo?: string | null
-          titulo: string
-        }
-        Update: {
-          created_at?: string
-          dono_id?: string | null
-          id?: string
-          is_public?: boolean | null
-          questoes?: Json | null
-          resumo?: string | null
-          titulo?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "estudos_dono_id_fkey"
-            columns: ["dono_id"]
-            isOneToOne: false
-            referencedRelation: "perfis"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      flashcard_baralhos: {
-        Row: {
-          cor: string | null
-          created_at: string
-          dono_id: string | null
-          id: string
+          is_accepted: boolean | null
+          is_admin: boolean | null
           nome: string
         }
         Insert: {
-          cor?: string | null
-          created_at?: string
-          dono_id?: string | null
-          id?: string
+          criado_at?: string | null
+          data_nascimento?: string | null
+          email: string
+          foto_url?: string | null
+          id: string
+          is_accepted?: boolean | null
+          is_admin?: boolean | null
           nome: string
         }
         Update: {
-          cor?: string | null
-          created_at?: string
-          dono_id?: string | null
+          criado_at?: string | null
+          data_nascimento?: string | null
+          email?: string
+          foto_url?: string | null
           id?: string
-          nome?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "flashcard_baralhos_dono_id_fkey"
-            columns: ["dono_id"]
-            isOneToOne: false
-            referencedRelation: "perfis"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      flashcards: {
-        Row: {
-          baralho_id: string | null
-          concluido: boolean | null
-          created_at: string
-          frente: string
-          id: string
-          verso: string
-        }
-        Insert: {
-          baralho_id?: string | null
-          concluido?: boolean | null
-          created_at?: string
-          frente: string
-          id?: string
-          verso: string
-        }
-        Update: {
-          baralho_id?: string | null
-          concluido?: boolean | null
-          created_at?: string
-          frente?: string
-          id?: string
-          verso?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "flashcards_baralho_id_fkey"
-            columns: ["baralho_id"]
-            isOneToOne: false
-            referencedRelation: "flashcard_baralhos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      historico: {
-        Row: {
-          created_at: string
-          detalhes: Json | null
-          dono_id: string | null
-          estudo_id: string | null
-          id: string
-          nota: number | null
-          tipo: string
-        }
-        Insert: {
-          created_at?: string
-          detalhes?: Json | null
-          dono_id?: string | null
-          estudo_id?: string | null
-          id?: string
-          nota?: number | null
-          tipo: string
-        }
-        Update: {
-          created_at?: string
-          detalhes?: Json | null
-          dono_id?: string | null
-          estudo_id?: string | null
-          id?: string
-          nota?: number | null
-          tipo?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "historico_dono_id_fkey"
-            columns: ["dono_id"]
-            isOneToOne: false
-            referencedRelation: "perfis"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "historico_estudo_id_fkey"
-            columns: ["estudo_id"]
-            isOneToOne: false
-            referencedRelation: "estudos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      perfis: {
-        Row: {
-          avatar_url: string | null
-          config_voz: Json | null
-          created_at: string
-          id: string
-          nome: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          config_voz?: Json | null
-          created_at?: string
-          id?: string
-          nome: string
-        }
-        Update: {
-          avatar_url?: string | null
-          config_voz?: Json | null
-          created_at?: string
-          id?: string
+          is_accepted?: boolean | null
+          is_admin?: boolean | null
           nome?: string
         }
         Relationships: []
-      }
-      quiz_progresso: {
-        Row: {
-          estudo_id: string | null
-          finalizado: boolean | null
-          id: string
-          perfil_id: string | null
-          respostas: Json | null
-          updated_at: string
-        }
-        Insert: {
-          estudo_id?: string | null
-          finalizado?: boolean | null
-          id?: string
-          perfil_id?: string | null
-          respostas?: Json | null
-          updated_at?: string
-        }
-        Update: {
-          estudo_id?: string | null
-          finalizado?: boolean | null
-          id?: string
-          perfil_id?: string | null
-          respostas?: Json | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "quiz_progresso_estudo_id_fkey"
-            columns: ["estudo_id"]
-            isOneToOne: false
-            referencedRelation: "estudos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quiz_progresso_perfil_id_fkey"
-            columns: ["perfil_id"]
-            isOneToOne: false
-            referencedRelation: "perfis"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Views: {

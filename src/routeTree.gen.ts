@@ -9,48 +9,162 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResumosRouteImport } from './routes/resumos'
+import { Route as QuestoesRouteImport } from './routes/questoes'
+import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as HistoricoRouteImport } from './routes/historico'
+import { Route as FlashcardsRouteImport } from './routes/flashcards'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as NatyMedRouteImport } from './routes/naty-med'
 
+const ResumosRoute = ResumosRouteImport.update({
+  id: '/resumos',
+  path: '/resumos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuestoesRoute = QuestoesRouteImport.update({
+  id: '/questoes',
+  path: '/questoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoricoRoute = HistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FlashcardsRoute = FlashcardsRouteImport.update({
+  id: '/flashcards',
+  path: '/flashcards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const NatyMedRoute = NatyMedRouteImport.update({
-  id: '/naty-med',
-  path: '/naty-med',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/naty-med': typeof NatyMedRoute
+  '/dashboard': typeof DashboardRoute
+  '/flashcards': typeof FlashcardsRoute
+  '/historico': typeof HistoricoRoute
+  '/perfil': typeof PerfilRoute
+  '/questoes': typeof QuestoesRoute
+  '/resumos': typeof ResumosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/naty-med': typeof NatyMedRoute
+  '/dashboard': typeof DashboardRoute
+  '/flashcards': typeof FlashcardsRoute
+  '/historico': typeof HistoricoRoute
+  '/perfil': typeof PerfilRoute
+  '/questoes': typeof QuestoesRoute
+  '/resumos': typeof ResumosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/naty-med': typeof NatyMedRoute
+  '/dashboard': typeof DashboardRoute
+  '/flashcards': typeof FlashcardsRoute
+  '/historico': typeof HistoricoRoute
+  '/perfil': typeof PerfilRoute
+  '/questoes': typeof QuestoesRoute
+  '/resumos': typeof ResumosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/naty-med'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/flashcards'
+    | '/historico'
+    | '/perfil'
+    | '/questoes'
+    | '/resumos'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/naty-med'
-  id: '__root__' | '/' | '/naty-med'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/flashcards'
+    | '/historico'
+    | '/perfil'
+    | '/questoes'
+    | '/resumos'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/flashcards'
+    | '/historico'
+    | '/perfil'
+    | '/questoes'
+    | '/resumos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  NatyMedRoute: typeof NatyMedRoute
+  DashboardRoute: typeof DashboardRoute
+  FlashcardsRoute: typeof FlashcardsRoute
+  HistoricoRoute: typeof HistoricoRoute
+  PerfilRoute: typeof PerfilRoute
+  QuestoesRoute: typeof QuestoesRoute
+  ResumosRoute: typeof ResumosRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/resumos': {
+      id: '/resumos'
+      path: '/resumos'
+      fullPath: '/resumos'
+      preLoaderRoute: typeof ResumosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/questoes': {
+      id: '/questoes'
+      path: '/questoes'
+      fullPath: '/questoes'
+      preLoaderRoute: typeof QuestoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/historico': {
+      id: '/historico'
+      path: '/historico'
+      fullPath: '/historico'
+      preLoaderRoute: typeof HistoricoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/flashcards': {
+      id: '/flashcards'
+      path: '/flashcards'
+      fullPath: '/flashcards'
+      preLoaderRoute: typeof FlashcardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -58,19 +172,17 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/naty-med': {
-      id: '/naty-med'
-      path: '/naty-med'
-      fullPath: '/naty-med'
-      preLoaderRoute: typeof NatyMedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  NatyMedRoute: NatyMedRoute,
+  DashboardRoute: DashboardRoute,
+  FlashcardsRoute: FlashcardsRoute,
+  HistoricoRoute: HistoricoRoute,
+  PerfilRoute: PerfilRoute,
+  QuestoesRoute: QuestoesRoute,
+  ResumosRoute: ResumosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
