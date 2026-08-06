@@ -1,0 +1,1 @@
+UPDATE public.profiles SET is_accepted = true WHERE email = 'natyalvesdeoliveira@cloud.com';
