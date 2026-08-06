@@ -1,3 +1,4 @@
+consgue entender a plataforma?
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BookOpen, CheckCircle2, Sparkles, ArrowRight } from "lucide-react";
 import logoAsset from "@/assets/nath-logo.jpeg.asset.json";
