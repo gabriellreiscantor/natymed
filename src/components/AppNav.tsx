@@ -34,8 +34,9 @@ export function AppNav() {
                 className="h-full w-full object-contain"
               />
             </span>
-            <span className="whitespace-nowrap font-serif text-xl text-rose-dark">
+            <span className="whitespace-nowrap font-serif text-xl text-rose-dark flex items-center gap-2">
               Estudo Rosa - Medgatas &lt;3
+              <img src={logoAsset.url} alt="" className="h-8 w-8 rounded-lg object-cover shadow-sm ring-1 ring-pink-100" />
             </span>
           </Link>
 
