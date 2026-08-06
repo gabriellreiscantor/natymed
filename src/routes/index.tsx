@@ -107,13 +107,6 @@ function LandingPage() {
 
           <p className="mx-auto mt-8 max-w-2xl animate-in fade-in slide-in-from-bottom-6 duration-1000 text-lg leading-relaxed text-muted-foreground sm:text-xl">
             Uma plataforma feita exclusivamente para alunas bonitas que serão médicas incríveis! 🎀✨ Transformamos aqueles PDFs infinitos em resumos fofos e quizzes rápidos para você estudar com estilo e sem perder a pose. Porque a gente estuda muito, mas sempre de CRM e gloss na mão! 💅🩺
-            <br /><br />
-            natyalvesdeoliveira@cloud.com
-            <br /><br />
-            libera ela pra entrar no dahsboard
-            <br /><br />
-            <br /><br />
-            Eu crio as questões e vocês estudam.
           </p>
 
           <div className="mt-12 flex animate-in fade-in slide-in-from-bottom-8 duration-1000 justify-center gap-4">
