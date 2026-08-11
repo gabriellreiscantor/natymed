@@ -241,7 +241,7 @@ export function PerfilGate({ children }: { children: ReactNode }) {
         </p>
 
         <form onSubmit={handleAuth} className="mt-8 text-left">
-          {true ? (
+          {true && (
             <div className="space-y-4">
               {mode === "signup" && (
                 <>
