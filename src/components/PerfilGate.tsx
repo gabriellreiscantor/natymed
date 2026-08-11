@@ -210,7 +210,7 @@ export function PerfilGate({ children }: { children: ReactNode }) {
             <h2 className="font-serif text-3xl text-pink-700">Sala de Espera ✨</h2>
             <p className="mt-4 text-pink-600/80 leading-relaxed">
               Oie! Seu cadastro foi recebido com sucesso. <br/>
-              Agora é só aguardar a <strong className="text-pink-600">Doutora Nath</strong> ou o <strong className="text-pink-600">Ghabriell</strong> te aceitarem no consultório.
+              Agora é só aguardar a <strong className="text-pink-600">Doutora Naty</strong> te aceitar no consultório.
             </p>
             <div className="mt-8 flex justify-center">
               <div className="flex items-center gap-2 rounded-full bg-pink-50 px-4 py-2 text-xs font-medium text-pink-500 animate-pulse">
@@ -386,7 +386,7 @@ export function PerfilGate({ children }: { children: ReactNode }) {
         
         <p className="mt-8 text-[11px] text-pink-300 italic">
           O acesso é pessoal e intransferível. <br/>
-          Suas amigas precisam da aprovação da Nath para entrar. 🎀
+          Suas amigas precisam da aprovação da Naty para entrar. 🎀
         </p>
       </div>
     </div>

@@ -87,7 +87,8 @@ function LandingPage() {
               <div className="relative h-48 w-48 overflow-hidden rounded-full border-4 border-white shadow-2xl sm:h-64 sm:w-64">
                 <img 
                   src="/nath-logo.jpeg" 
-                  alt="Nath" 
+                  alt="Naty" 
+
                   className="h-full w-full object-cover transition-transform duration-700 hover:scale-110" 
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
