@@ -115,10 +115,72 @@ export function PerfilGate({ children }: { children: ReactNode }) {
 
   if (!carregado) return null;
 
+  // Se o código OTP foi enviado mas ainda não foi validado, mostramos a tela de OTP
+  // independente do status do perfil no Supabase (que pode já existir após o signUp)
+  if (sent) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-pink-50/80 px-4 backdrop-blur-md overflow-y-auto py-10">
+        <div className="w-full max-w-md rounded-[2.5rem] border border-pink-100 bg-white p-8 text-center shadow-2xl my-auto">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-pink-100 text-3xl shadow-sm ring-4 ring-white">
+            <img 
+              src="/favicon.png" 
+              alt="🌸" 
+              className="h-10 w-10 object-contain"
+            />
+          </div>
+          <h2 className="font-serif text-3xl text-pink-700">Valide seu Acesso</h2>
+          <p className="mt-2 text-pink-500/70 text-sm">
+            Enviamos um código para o seu e-mail.
+          </p>
+
+          <form onSubmit={handleVerifyOtp} className="mt-8 text-left">
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-pink-400 ml-4">Código de Acesso</label>
+              <input
+                type="text"
+                required
+                autoFocus
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="000000"
+                className="w-full rounded-full border border-pink-100 bg-pink-50/30 px-6 py-4 text-center text-2xl tracking-[0.5em] font-bold text-pink-700 outline-none focus:border-pink-300"
+              />
+              <p className="text-center text-[10px] text-pink-400 leading-relaxed">
+                Quase lá! Enviamos um código para {email}.<br/>
+                Verifique seu e-mail para finalizar.
+              </p>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-full bg-pink-500 py-4 font-bold text-white shadow-lg shadow-pink-200 transition-all hover:bg-pink-600 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Confirmar Código ✨"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSent(false)}
+                className="w-full text-xs text-pink-400 hover:text-pink-600 underline underline-offset-2 text-center"
+              >
+                Voltar
+              </button>
+            </div>
+          </form>
+
+          {error && <p className="mt-4 text-[10px] leading-relaxed font-medium text-rose-500 bg-rose-50/50 p-3 rounded-2xl border border-rose-100">{error}</p>}
+        </div>
+      </div>
+    );
+  }
+
   // Usuário logado
   if (perfil) {
     // A página de "Sala de Espera" (pendente) só deve aparecer DEPOIS da validação do código
-    // O usuário já está logado no Supabase aqui.
+    // Se o usuário está logado mas NÃO validou o e-mail ou NÃO foi aceito, mostramos a sala de espera.
+    // No entanto, o usuário quer que APÓS o cadastro/login (auth.signUp/signIn), 
+    // ele vá para a tela de OTP antes de qualquer outra coisa.
+    
+    // Se perfil.is_accepted for falso, ele cai na sala de espera.
+    // O problema é que o perfil é carregado assim que o auth.session existe.
     if (!perfil.is_accepted && !perfil.is_admin) {
       return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-pink-50/80 px-4 backdrop-blur-md">
@@ -178,8 +240,8 @@ export function PerfilGate({ children }: { children: ReactNode }) {
             : "Crie sua conta para começar a brilhar."}
         </p>
 
-        <form onSubmit={sent ? handleVerifyOtp : handleAuth} className="mt-8 text-left">
-          {!sent ? (
+        <form onSubmit={handleAuth} className="mt-8 text-left">
+          {true ? (
             <div className="space-y-4">
               {mode === "signup" && (
                 <>
@@ -302,38 +364,8 @@ export function PerfilGate({ children }: { children: ReactNode }) {
                 {mode === "login" ? "Não tem conta? Cadastre-se" : "Já tem conta? Faça Login"}
               </button>
             </div>
-          ) : (
-            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-pink-400 ml-4">Código de Acesso</label>
-              <input
-                type="text"
-                required
-                autoFocus
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                placeholder="000000"
-                className="w-full rounded-full border border-pink-100 bg-pink-50/30 px-6 py-4 text-center text-2xl tracking-[0.5em] font-bold text-pink-700 outline-none focus:border-pink-300"
-              />
-              <p className="text-center text-[10px] text-pink-400 leading-relaxed">
-                Quase lá! Enviamos um código para {email}.<br/>
-                Verifique seu e-mail para finalizar.
-              </p>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-full bg-pink-500 py-4 font-bold text-white shadow-lg shadow-pink-200 transition-all hover:bg-pink-600 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Confirmar Código ✨"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSent(false)}
-                className="w-full text-xs text-pink-400 hover:text-pink-600 underline underline-offset-2 text-center"
-              >
-                Voltar
-              </button>
-            </div>
-          )}
+          ) : null}
+        </form>
         </form>
 
         {error && <p className="mt-4 text-[10px] leading-relaxed font-medium text-rose-500 bg-rose-50/50 p-3 rounded-2xl border border-rose-100">{error}</p>}
