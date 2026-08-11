@@ -26,18 +26,28 @@ export function AppNav() {
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur">
       <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 sm:items-center sm:py-4">
         <div className="flex w-full items-center justify-between gap-2 sm:justify-center sm:relative">
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <span className="block h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-primary/10 shadow-sm ring-2 ring-primary/40">
-              <img
-                src={logoAsset.url}
-                alt="Estudo Rosa"
-                className="h-full w-full object-contain"
-              />
-            </span>
-            <span className="whitespace-nowrap font-serif text-xl text-rose-dark flex items-center gap-2">
-              Estudo Rosa - Medgatas &lt;3
-              <img src={logoAsset.url} alt="" className="h-8 w-8 rounded-lg object-cover shadow-sm ring-1 ring-pink-100" />
-            </span>
+          <Link to="/dashboard" className="flex items-center gap-3 group transition-transform hover:scale-[1.02]">
+            <div className="relative">
+              <span className="block h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-tr from-pink-200 to-rose-100 shadow-md ring-2 ring-white transition-all group-hover:shadow-pink-200/50">
+                <img
+                  src={logoAsset.url}
+                  alt="Estudo Rosa"
+                  className="h-full w-full object-cover"
+                />
+              </span>
+              <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-white p-0.5 shadow-sm">
+                <div className="h-full w-full rounded-full bg-pink-400 animate-pulse" />
+              </div>
+            </div>
+            
+            <div className="flex flex-col">
+              <span className="whitespace-nowrap font-serif text-2xl tracking-tight text-rose-950 leading-none">
+                Estudo Rosa
+              </span>
+              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-pink-400 leading-none mt-1">
+                Medgatas Exclusive
+              </span>
+            </div>
           </Link>
 
           {perfil && (
