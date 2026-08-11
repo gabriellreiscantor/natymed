@@ -100,15 +100,18 @@ function PerfilPage() {
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="rounded-3xl border border-pink-100 bg-card p-6 shadow-sm sm:p-8">
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-          <div className="relative">
+          <div className="relative group">
             <button
               onClick={() => inputRef.current?.click()}
-              className="grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-pink-100 text-2xl font-semibold text-pink-700 ring-4 ring-pink-200 hover:ring-pink-400"
+              className="relative grid h-32 w-32 place-items-center overflow-hidden rounded-full bg-pink-100 text-2xl font-semibold text-pink-700 ring-4 ring-pink-200 transition-all hover:ring-pink-400 sm:h-36 sm:w-36"
             >
               {perfil.foto_url ? (
                 <img src={perfil.foto_url} alt="" className="h-full w-full object-cover" />
               ) : (
-                iniciais(perfil.nome) || "?"
+                <div className="flex flex-col items-center gap-1 p-4 text-center">
+                  <Plus className="h-6 w-6 opacity-40" />
+                  <span className="text-[10px] leading-tight font-medium uppercase tracking-tighter">Adicione sua fotinha aqui</span>
+                </div>
               )}
             </button>
             {subindo && (
