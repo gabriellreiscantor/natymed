@@ -124,12 +124,16 @@ export function PerfilGate({ children }: { children: ReactNode }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-pink-50/80 px-4 backdrop-blur-md">
           <div className="w-full max-w-md rounded-[2.5rem] border border-pink-100 bg-white p-10 text-center shadow-2xl">
             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-pink-100 text-4xl shadow-inner">
-              👸
+              <img 
+                src="/favicon.png" 
+                alt="👑" 
+                className="h-12 w-12 object-contain"
+              />
             </div>
             <h2 className="font-serif text-3xl text-pink-700">Sala de Espera ✨</h2>
             <p className="mt-4 text-pink-600/80 leading-relaxed">
               Oie! Seu cadastro foi recebido com sucesso. <br/>
-              Agora é só aguardar a <strong>Doutora Nath</strong> ou o <strong>Ghabriell</strong> te aceitarem no consultório.
+              Agora é só aguardar a <strong className="text-pink-600">Doutora Nath</strong> ou o <strong className="text-pink-600">Ghabriell</strong> te aceitarem no consultório.
             </p>
             <div className="mt-8 flex justify-center">
               <div className="flex items-center gap-2 rounded-full bg-pink-50 px-4 py-2 text-xs font-medium text-pink-500 animate-pulse">
@@ -159,7 +163,11 @@ export function PerfilGate({ children }: { children: ReactNode }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-pink-50/80 px-4 backdrop-blur-md overflow-y-auto py-10">
       <div className="w-full max-w-md rounded-[2.5rem] border border-pink-100 bg-white p-8 text-center shadow-2xl my-auto">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-pink-100 text-3xl shadow-sm ring-4 ring-white">
-          🌸
+          <img 
+            src="/favicon.png" 
+            alt="🌸" 
+            className="h-10 w-10 object-contain"
+          />
         </div>
         <h2 className="font-serif text-3xl text-pink-700">
           {mode === "login" ? "Bem-vinda de volta!" : "Seja uma MedGata!"}
