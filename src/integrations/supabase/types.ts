@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.15"
   }
@@ -16,55 +14,109 @@ export type Database = {
     Tables: {
       estudos: {
         Row: {
-          created_at: string
-          dono_id: string | null
+          compartilhado: boolean | null
+          criado_em: string
           id: string
-          is_public: boolean | null
+          nome: string
+          perfil_id: string | null
           questoes: Json | null
-          resumo: string | null
-          titulo: string
+          resumos: Json | null
         }
         Insert: {
-          created_at?: string
-          dono_id?: string | null
+          compartilhado?: boolean | null
+          criado_em?: string
           id?: string
-          is_public?: boolean | null
+          nome: string
+          perfil_id?: string | null
           questoes?: Json | null
-          resumo?: string | null
-          titulo: string
+          resumos?: Json | null
         }
         Update: {
-          created_at?: string
-          dono_id?: string | null
+          compartilhado?: boolean | null
+          criado_em?: string
           id?: string
-          is_public?: boolean | null
+          nome?: string
+          perfil_id?: string | null
           questoes?: Json | null
-          resumo?: string | null
-          titulo?: string
+          resumos?: Json | null
         }
         Relationships: []
       }
       flashcard_baralhos: {
         Row: {
           cor: string | null
-          created_at: string
-          dono_id: string | null
+          criado_em: string
+          id: string
+          perfil_id: string | null
+          titulo: string
+        }
+        Insert: {
+          cor?: string | null
+          criado_em?: string
+          id?: string
+          perfil_id?: string | null
+          titulo: string
+        }
+        Update: {
+          cor?: string | null
+          criado_em?: string
+          id?: string
+          perfil_id?: string | null
+          titulo?: string
+        }
+        Relationships: []
+      }
+      flashcard_perfis: {
+        Row: {
+          criado_em: string
+          foto_url: string | null
           id: string
           nome: string
         }
         Insert: {
-          cor?: string | null
-          created_at?: string
-          dono_id?: string | null
-          id?: string
+          criado_em?: string
+          foto_url?: string | null
+          id: string
           nome: string
         }
         Update: {
-          cor?: string | null
-          created_at?: string
-          dono_id?: string | null
+          criado_em?: string
+          foto_url?: string | null
           id?: string
           nome?: string
+        }
+        Relationships: []
+      }
+      flashcard_sessoes: {
+        Row: {
+          acertos: number
+          data: string
+          duvidas: number
+          erros: number
+          id: string
+          perfil_id: string
+          pontuacao: number
+          total: number
+        }
+        Insert: {
+          acertos?: number
+          data?: string
+          duvidas?: number
+          erros?: number
+          id?: string
+          perfil_id: string
+          pontuacao?: number
+          total?: number
+        }
+        Update: {
+          acertos?: number
+          data?: string
+          duvidas?: number
+          erros?: number
+          id?: string
+          perfil_id?: string
+          pontuacao?: number
+          total?: number
         }
         Relationships: []
       }
@@ -72,74 +124,97 @@ export type Database = {
         Row: {
           baralho_id: string | null
           concluido: boolean | null
-          created_at: string
-          frente: string
+          criado_em: string
           id: string
-          verso: string
+          perfil_id: string | null
+          pergunta: string
+          resposta: string
         }
         Insert: {
           baralho_id?: string | null
           concluido?: boolean | null
-          created_at?: string
-          frente: string
+          criado_em?: string
           id?: string
-          verso: string
+          perfil_id?: string | null
+          pergunta: string
+          resposta: string
         }
         Update: {
           baralho_id?: string | null
           concluido?: boolean | null
-          created_at?: string
-          frente?: string
+          criado_em?: string
           id?: string
-          verso?: string
+          perfil_id?: string | null
+          pergunta?: string
+          resposta?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "flashcards_baralho_id_fkey"
-            columns: ["baralho_id"]
-            isOneToOne: false
-            referencedRelation: "flashcard_baralhos"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       historico: {
         Row: {
-          created_at: string
-          detalhes: Json | null
-          dono_id: string | null
+          acertos: number
+          data: string
           estudo_id: string | null
           id: string
+          nome: string
           nota: number | null
-          tipo: string
+          perfil_id: string | null
+          respostas: Json | null
+          total: number
         }
         Insert: {
-          created_at?: string
-          detalhes?: Json | null
-          dono_id?: string | null
+          acertos?: number
+          data?: string
           estudo_id?: string | null
           id?: string
+          nome?: string
           nota?: number | null
-          tipo: string
+          perfil_id?: string | null
+          respostas?: Json | null
+          total?: number
         }
         Update: {
-          created_at?: string
-          detalhes?: Json | null
-          dono_id?: string | null
+          acertos?: number
+          data?: string
           estudo_id?: string | null
           id?: string
+          nome?: string
           nota?: number | null
-          tipo?: string
+          perfil_id?: string | null
+          respostas?: Json | null
+          total?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "historico_estudo_id_fkey"
-            columns: ["estudo_id"]
-            isOneToOne: false
-            referencedRelation: "estudos"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      otp_codes: {
+        Row: {
+          code_hash: string
+          consumido: boolean
+          criado_em: string
+          email: string
+          expira_em: string
+          id: string
+          tentativas: number
+        }
+        Insert: {
+          code_hash: string
+          consumido?: boolean
+          criado_em?: string
+          email: string
+          expira_em: string
+          id?: string
+          tentativas?: number
+        }
+        Update: {
+          code_hash?: string
+          consumido?: boolean
+          criado_em?: string
+          email?: string
+          expira_em?: string
+          id?: string
+          tentativas?: number
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -176,38 +251,30 @@ export type Database = {
       }
       quiz_progresso: {
         Row: {
-          estudo_id: string | null
+          atualizado_em: string
+          estudo_id: string
           finalizado: boolean | null
           id: string
-          perfil_id: string | null
+          perfil_id: string
           respostas: Json | null
-          updated_at: string
         }
         Insert: {
-          estudo_id?: string | null
+          atualizado_em?: string
+          estudo_id: string
           finalizado?: boolean | null
           id?: string
-          perfil_id?: string | null
+          perfil_id: string
           respostas?: Json | null
-          updated_at?: string
         }
         Update: {
-          estudo_id?: string | null
+          atualizado_em?: string
+          estudo_id?: string
           finalizado?: boolean | null
           id?: string
-          perfil_id?: string | null
+          perfil_id?: string
           respostas?: Json | null
-          updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "quiz_progresso_estudo_id_fkey"
-            columns: ["estudo_id"]
-            isOneToOne: false
-            referencedRelation: "estudos"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -232,7 +299,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      is_admin: { Args: never; Returns: boolean }
+      [_ in never]: never
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

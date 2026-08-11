@@ -1,5 +1,6 @@
 import type { ParsedPdf } from "./pdf-parser";
-import { supabase } from "./supabase";
+import type { Json } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
 import { getPerfilAtivoId } from "./perfis-store";
 
 const CURRENT_ID_KEY = "estudo:atual_id";
@@ -48,13 +49,13 @@ export async function createStudy(
   nome: string,
   parsed: ParsedPdf,
 ): Promise<CurrentStudy> {
-  const perfilId = getPerfilAtivoId();
+  const perfilId = await getPerfilAtivoId();
   const { data, error } = await supabase
     .from("estudos")
     .insert({
       nome,
-      resumos: parsed.resumos,
-      questoes: parsed.questoes,
+      resumos: parsed.resumos as unknown as Json,
+      questoes: parsed.questoes as unknown as Json,
       perfil_id: perfilId,
       compartilhado: false,
     })
@@ -66,8 +67,8 @@ export async function createStudy(
   const study: CurrentStudy = {
     id: data.id,
     nome: data.nome,
-    resumos: data.resumos ?? [],
-    questoes: data.questoes ?? [],
+    resumos: (data.resumos ?? []) as unknown as ParsedPdf["resumos"],
+    questoes: (data.questoes ?? []) as unknown as ParsedPdf["questoes"],
     criadoEm: data.criado_em,
     perfil_id: data.perfil_id ?? null,
     compartilhado: !!data.compartilhado,
@@ -83,7 +84,7 @@ export async function createStudy(
 export async function loadCurrent(): Promise<CurrentStudy | null> {
   if (typeof window === "undefined") return null;
   const id = localStorage.getItem(CURRENT_ID_KEY);
-  const perfilId = getPerfilAtivoId();
+  const perfilId = await getPerfilAtivoId();
 
   const pick = async (whereId: string) => {
     const { data } = await supabase
@@ -113,8 +114,8 @@ export async function loadCurrent(): Promise<CurrentStudy | null> {
   return {
     id: data.id,
     nome: data.nome,
-    resumos: data.resumos ?? [],
-    questoes: data.questoes ?? [],
+    resumos: (data.resumos ?? []) as unknown as ParsedPdf["resumos"],
+    questoes: (data.questoes ?? []) as unknown as ParsedPdf["questoes"],
     criadoEm: data.criado_em,
     perfil_id: data.perfil_id ?? null,
     compartilhado: !!data.compartilhado,
@@ -127,7 +128,7 @@ export async function loadEstudoQuestoes(id: string): Promise<any[] | null> {
     .select("questoes")
     .eq("id", id)
     .maybeSingle();
-  return data?.questoes ?? null;
+  return (data?.questoes ?? null) as any[] | null;
 }
 
 
@@ -145,7 +146,7 @@ async function fetchDonos(
   const map = new Map<string, { nome: string; foto_url: string | null }>();
   if (!filtered.length) return map;
   const { data } = await supabase
-    .from("perfis")
+    .from("profiles")
     .select("id, nome, foto_url")
     .in("id", filtered);
   (data ?? []).forEach((p) =>
@@ -155,7 +156,7 @@ async function fetchDonos(
 }
 
 export async function listMeusEstudos(): Promise<StudyListItem[]> {
-  const perfilId = getPerfilAtivoId();
+  const perfilId = await getPerfilAtivoId();
   if (!perfilId) return [];
   const { data, error } = await supabase
     .from("estudos")
@@ -173,7 +174,7 @@ export async function listMeusEstudos(): Promise<StudyListItem[]> {
 }
 
 export async function listCompartilhados(): Promise<StudyListItem[]> {
-  const perfilId = getPerfilAtivoId();
+  const perfilId = await getPerfilAtivoId();
   const { data, error } = await supabase
     .from("estudos")
     .select("id, nome, criado_em, perfil_id, compartilhado")
@@ -226,7 +227,7 @@ export async function deleteStudy(id: string) {
 export async function loadHistory(
   scope: "meu" | "todos" = "meu",
 ): Promise<HistoryEntry[]> {
-  const perfilId = getPerfilAtivoId();
+  const perfilId = await getPerfilAtivoId();
   let q = supabase
     .from("historico")
     .select("id, estudo_id, nome, nota, acertos, total, data, perfil_id, respostas")
@@ -248,7 +249,7 @@ export async function loadHistory(
 }
 
 export async function addHistory(entry: Omit<HistoryEntry, "id" | "perfil_id">) {
-  const perfilId = getPerfilAtivoId();
+  const perfilId = await getPerfilAtivoId();
   const { error } = await supabase.from("historico").insert({
     estudo_id: entry.estudo_id,
     nome: entry.nome,
@@ -257,7 +258,7 @@ export async function addHistory(entry: Omit<HistoryEntry, "id" | "perfil_id">) 
     total: entry.total,
     data: entry.data,
     perfil_id: perfilId,
-    respostas: entry.respostas ?? null,
+    respostas: (entry.respostas ?? null) as unknown as Json,
   });
   if (error) console.error("[historico]", error.message);
   emit();
@@ -265,7 +266,7 @@ export async function addHistory(entry: Omit<HistoryEntry, "id" | "perfil_id">) 
 
 
 export async function clearHistory() {
-  const perfilId = getPerfilAtivoId();
+  const perfilId = await getPerfilAtivoId();
   if (perfilId) {
     await supabase.from("historico").delete().eq("perfil_id", perfilId);
   } else {
@@ -287,7 +288,7 @@ export interface QuizProgresso {
 export async function loadProgresso(
   estudoId: string,
 ): Promise<QuizProgresso | null> {
-  const perfilId = getPerfilAtivoId();
+  const perfilId = await getPerfilAtivoId();
   if (!perfilId) return null;
   const { data } = await supabase
     .from("quiz_progresso")
@@ -306,13 +307,13 @@ export async function saveProgresso(
   estudoId: string,
   progresso: QuizProgresso,
 ) {
-  const perfilId = getPerfilAtivoId();
+  const perfilId = await getPerfilAtivoId();
   if (!perfilId) return;
   const { error } = await supabase.from("quiz_progresso").upsert(
     {
       perfil_id: perfilId,
       estudo_id: estudoId,
-      respostas: progresso.respostas,
+      respostas: progresso.respostas as unknown as Json,
       finalizado: progresso.finalizado,
       atualizado_em: new Date().toISOString(),
     },
@@ -322,7 +323,7 @@ export async function saveProgresso(
 }
 
 export async function deleteProgresso(estudoId: string) {
-  const perfilId = getPerfilAtivoId();
+  const perfilId = await getPerfilAtivoId();
   if (!perfilId) return;
   await supabase
     .from("quiz_progresso")

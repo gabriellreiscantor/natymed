@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { LogOut, Loader2, Sparkles, Send, Eye, EyeOff } from "lucide-react";
 import { usePerfilAtivo } from "@/lib/perfis-store";
 import { supabase } from "@/integrations/supabase/client";
-import { sendOtpEmail } from "@/lib/resend.functions";
+import { requestOtp, verifyOtp } from "@/lib/otp.functions";
 import { useServerFn } from "@tanstack/react-start";
 
 export function PerfilGate({ children }: { children: ReactNode }) {
@@ -20,46 +20,32 @@ export function PerfilGate({ children }: { children: ReactNode }) {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const triggerSendEmail = useServerFn(sendOtpEmail);
+  const triggerRequestOtp = useServerFn(requestOtp);
+  const triggerVerifyOtp = useServerFn(verifyOtp);
 
   async function handleAuth(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const manualOtp = Math.floor(100000 + Math.random() * 900000).toString();
-
     try {
-      if (mode === "signup") {
-        if (password !== confirmPassword) {
-          throw new Error("As senhas não conferem.");
-        }
-        // No cadastro, criamos o usuário no Supabase
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              nome: nome, // Alinhado com a chave usada no trigger SQL (nome)
-              data_nascimento: nascimento,
-              medical_period: periodo,
-            }
-          }
-        });
-        if (signUpError) throw signUpError;
-      } else {
-        // No login, apenas verificamos se a senha está correta antes de enviar o OTP
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (signInError) throw signInError;
+      if (mode === "signup" && password !== confirmPassword) {
+        throw new Error("As senhas não conferem.");
       }
 
-      // Enviar o e-mail personalizado via API do Resend
-      await triggerSendEmail({ data: { email, otp: manualOtp } });
+      // O servidor confere a senha, gera o código e envia o e-mail.
+      // Nenhuma sessão é criada no navegador antes da validação.
+      await triggerRequestOtp({
+        data: {
+          email,
+          password,
+          mode,
+          nome,
+          data_nascimento: nascimento || undefined,
+        },
+      });
+
       window.sessionStorage.setItem("pending_otp_email", email);
-      window.sessionStorage.setItem(`otp_${email}`, manualOtp);
       setSent(true);
     } catch (err: any) {
       console.error("Auth error:", err);
@@ -84,44 +70,32 @@ export function PerfilGate({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
 
-    const savedOtp = window.sessionStorage.getItem(`otp_${email}`);
+    try {
+      // O servidor confere o código (hash, validade e tentativas) e só
+      // devolve a sessão se estiver tudo certo.
+      const sessao = await triggerVerifyOtp({ data: { email, password, otp } });
 
-    if (otp !== savedOtp) {
-      setError("Código incorreto. Verifique o e-mail enviado via Resend.");
-      setLoading(false);
-      return;
-    }
+      const { error: sessErr } = await supabase.auth.setSession({
+        access_token: sessao.access_token,
+        refresh_token: sessao.refresh_token,
+      });
+      if (sessErr) throw sessErr;
 
-    // Para total controle via API customizada, validamos o código contra o que salvamos no sessionStorage.
-    // O Supabase Auth signInWithOtp cria o usuário, mas como enviamos um OTP manual via Resend,
-    // não precisamos que o Supabase valide o token dele (que ele nem enviou, pois interceptamos).
-    
-    // Se o código bate, simplesmente forçamos o login ou assumimos sucesso para o perfil.
-    // Como queremos usar o Supabase para gerenciar a sessão, o ideal seria o Supabase validar.
-    // Mas para o seu fluxo personalizado agora, vamos permitir o avanço se for o código certo.
-    
-    setLoading(false);
-    // Nota: Em um fluxo ideal de produção, você usaria o SMTP do Supabase.
-    // Por agora, se o código digitado for o que enviamos, permitimos o acesso.
-    if (otp === savedOtp || otp === "123456") {
-      // O código validou! A sessão do Supabase já foi estabelecida no handleAuth 
-      // (via signUp ou signInWithPassword). Agora é só limpar e seguir.
       window.sessionStorage.removeItem("pending_otp_email");
-      window.sessionStorage.removeItem(`otp_${email}`);
-      window.location.reload(); 
-
-    } else {
-      setError("Código incorreto. Tente novamente.");
+      window.location.reload();
+    } catch (err: any) {
+      setError(err?.message || "Código incorreto. Tente novamente.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   useEffect(() => {
     const savedEmail = window.sessionStorage.getItem("pending_otp_email");
-    const savedOtp = window.sessionStorage.getItem(`otp_${savedEmail}`);
-    if (savedEmail && savedOtp && !perfil) {
+    if (savedEmail && !perfil) {
       setEmail(savedEmail);
-      setSent(true);
+      // A senha não fica guardada: se recarregou a página, refaz o login.
+      setSent(false);
     }
   }, [perfil]);
 

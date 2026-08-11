@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 const PERFIL_KEY = "flashcards:perfil_id";
 const EVENT = "flashcards:atualizado";
@@ -12,14 +12,14 @@ export interface Perfil {
 
 export interface Baralho {
   id: string;
-  perfil_id: string;
+  perfil_id: string | null;
   titulo: string;
   criado_em: string;
 }
 
 export interface Flashcard {
   id: string;
-  perfil_id: string;
+  perfil_id: string | null;
   baralho_id: string | null;
   pergunta: string;
   resposta: string;
@@ -80,12 +80,13 @@ export async function listPerfis(): Promise<Perfil[]> {
 }
 
 export async function createPerfil(
+  id: string,
   nome: string,
   foto_url: string | null,
 ): Promise<Perfil | null> {
   const { data, error } = await supabase
     .from("flashcard_perfis")
-    .insert({ nome, foto_url })
+    .insert({ id, nome, foto_url })
     .select("id, nome, foto_url, criado_em")
     .single();
   if (error) {
@@ -213,7 +214,7 @@ export async function listDecks(): Promise<Deck[]> {
   }
   const decks: Deck[] = [];
   for (const b of baralhos) {
-    const perfil = perfilPorId.get(b.perfil_id);
+    const perfil = b.perfil_id ? perfilPorId.get(b.perfil_id) : undefined;
     if (!perfil) continue;
     decks.push({ baralho: b, perfil, total: contagem.get(b.id) ?? 0 });
   }

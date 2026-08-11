@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { uploadToImgBB } from "./imgbb.functions";
 
 async function resizeToBlob(file: File, max = 512): Promise<Blob> {

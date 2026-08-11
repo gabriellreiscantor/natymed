@@ -1,0 +1,6 @@
+-- Correções aplicadas em 11/08/2026
+-- 1. Alinhamento das colunas com o que o app realmente usa
+-- 2. RLS por dono (as policies antigas eram "USING (true)" pra role public)
+-- 3. Helpers movidos pro schema auth_utils (fora da API REST)
+-- 4. Tabela otp_codes pro fluxo de OTP validado no servidor
+-- Ver histórico completo no painel do Supabase (migrations aplicadas via MCP).
