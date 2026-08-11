@@ -364,7 +364,6 @@ export function PerfilGate({ children }: { children: ReactNode }) {
                 {mode === "login" ? "Não tem conta? Cadastre-se" : "Já tem conta? Faça Login"}
               </button>
             </div>
-            </div>
           )}
         </form>
 
