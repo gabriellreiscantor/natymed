@@ -364,8 +364,8 @@ export function PerfilGate({ children }: { children: ReactNode }) {
                 {mode === "login" ? "Não tem conta? Cadastre-se" : "Já tem conta? Faça Login"}
               </button>
             </div>
-          ) : null}
-        </form>
+            </div>
+          )}
         </form>
 
         {error && <p className="mt-4 text-[10px] leading-relaxed font-medium text-rose-500 bg-rose-50/50 p-3 rounded-2xl border border-rose-100">{error}</p>}
