@@ -115,7 +115,7 @@ function PerfilPage() {
               )}
             </button>
             {subindo && (
-              <span className="absolute inset-0 grid place-items-center rounded-full bg-white/70 text-xs text-pink-600">
+              <span className="absolute inset-0 z-10 grid place-items-center rounded-full bg-white/70 text-xs font-bold text-pink-600 backdrop-blur-[2px]">
                 enviando...
               </span>
             )}
@@ -130,28 +130,30 @@ function PerfilPage() {
                 e.target.value = "";
               }}
             />
-            <div className="mt-2 flex justify-center gap-3 text-xs">
+            {perfil.foto_url && (
               <button
-                onClick={() => inputRef.current?.click()}
-                className="text-pink-600 hover:underline"
+                onClick={async () => {
+                  if (await confirmarBonito({
+                    titulo: "Remover foto?",
+                    mensagem: "Sua fotinha será removida do perfil.",
+                    confirmar: "Sim, remover"
+                  })) {
+                    await updatePerfil(perfil.id, { foto_url: null });
+                  }
+                }}
+                className="absolute -right-1 -top-1 grid h-8 w-8 place-items-center rounded-full bg-white text-rose-400 shadow-md ring-1 ring-rose-100 hover:text-rose-600"
+                title="Remover foto"
               >
-                {perfil.foto_url ? "Trocar" : "Escolher foto"}
+                <Trash2 className="h-4 w-4" />
               </button>
-              {perfil.foto_url && (
-                <button
-                  onClick={async () => {
-                    try {
-                      setEditandoFile(await urlToFile(perfil.foto_url!));
-                    } catch {
-                      alertarBonito("Não consegui abrir a foto para edição. Tente novamente! 🌸");
-                    }
-                  }}
-                  className="text-pink-600 hover:underline"
-                >
-                  Editar
-                </button>
-              )}
-            </div>
+            )}
+            <button
+              onClick={() => inputRef.current?.click()}
+              className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full bg-white text-pink-500 shadow-md ring-2 ring-pink-50 hover:bg-pink-50 transition-transform active:scale-90"
+              title={perfil.foto_url ? "Trocar foto" : "Adicionar foto"}
+            >
+              {perfil.foto_url ? <Pencil className="h-4 w-4" /> : <Plus className="h-5 w-5" />}
+            </button>
           </div>
 
           <div className="flex-1 text-center sm:text-left">
