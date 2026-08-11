@@ -218,9 +218,6 @@ export function PerfilGate({ children }: { children: ReactNode }) {
                 Processando seu acesso...
               </div>
             </div>
-            <p className="mt-6 text-[10px] text-pink-300">
-              Admins: natyalvesdeoliveira@icloud.com | ghabriellreis@gmail.com
-            </p>
             <button
               onClick={logoutGlobal}
               className="mt-8 text-sm text-pink-400 hover:text-pink-600 underline underline-offset-4"
