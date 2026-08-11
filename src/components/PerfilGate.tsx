@@ -117,7 +117,8 @@ export function PerfilGate({ children }: { children: ReactNode }) {
 
   // Usuário logado
   if (perfil) {
-    // Se não foi aceito ainda e não é admin
+    // A página de "Sala de Espera" (pendente) só deve aparecer DEPOIS da validação do código
+    // O usuário já está logado no Supabase aqui.
     if (!perfil.is_accepted && !perfil.is_admin) {
       return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-pink-50/80 px-4 backdrop-blur-md">
@@ -128,7 +129,7 @@ export function PerfilGate({ children }: { children: ReactNode }) {
             <h2 className="font-serif text-3xl text-pink-700">Sala de Espera ✨</h2>
             <p className="mt-4 text-pink-600/80 leading-relaxed">
               Oie! Seu cadastro foi recebido com sucesso. <br/>
-              Agora é só aguardar a <strong>Doutora Nath</strong> te aceitar no consultório dela.
+              Agora é só aguardar a <strong>Doutora Nath</strong> ou o <strong>Ghabriell</strong> te aceitarem no consultório.
             </p>
             <div className="mt-8 flex justify-center">
               <div className="flex items-center gap-2 rounded-full bg-pink-50 px-4 py-2 text-xs font-medium text-pink-500 animate-pulse">
@@ -136,6 +137,9 @@ export function PerfilGate({ children }: { children: ReactNode }) {
                 Processando seu acesso...
               </div>
             </div>
+            <p className="mt-6 text-[10px] text-pink-300">
+              Admins: natyalvesdeoliveira@icloud.com | ghabriellreis@gmail.com
+            </p>
             <button
               onClick={logoutGlobal}
               className="mt-8 text-sm text-pink-400 hover:text-pink-600 underline underline-offset-4"
