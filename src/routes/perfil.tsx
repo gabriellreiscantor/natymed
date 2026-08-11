@@ -100,19 +100,22 @@ function PerfilPage() {
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="rounded-3xl border border-pink-100 bg-card p-6 shadow-sm sm:p-8">
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-          <div className="relative">
+          <div className="relative group">
             <button
               onClick={() => inputRef.current?.click()}
-              className="grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-pink-100 text-2xl font-semibold text-pink-700 ring-4 ring-pink-200 hover:ring-pink-400"
+              className="relative grid h-32 w-32 place-items-center overflow-hidden rounded-full bg-pink-100 text-2xl font-semibold text-pink-700 ring-4 ring-pink-200 transition-all hover:ring-pink-400 sm:h-36 sm:w-36"
             >
               {perfil.foto_url ? (
                 <img src={perfil.foto_url} alt="" className="h-full w-full object-cover" />
               ) : (
-                iniciais(perfil.nome) || "?"
+                <div className="flex flex-col items-center gap-1 p-4 text-center">
+                  <Plus className="h-6 w-6 opacity-40" />
+                  <span className="text-[10px] leading-tight font-medium uppercase tracking-tighter">Adicione sua fotinha aqui</span>
+                </div>
               )}
             </button>
             {subindo && (
-              <span className="absolute inset-0 grid place-items-center rounded-full bg-white/70 text-xs text-pink-600">
+              <span className="absolute inset-0 z-10 grid place-items-center rounded-full bg-white/70 text-xs font-bold text-pink-600 backdrop-blur-[2px]">
                 enviando...
               </span>
             )}
@@ -127,28 +130,30 @@ function PerfilPage() {
                 e.target.value = "";
               }}
             />
-            <div className="mt-2 flex justify-center gap-3 text-xs">
+            {perfil.foto_url && (
               <button
-                onClick={() => inputRef.current?.click()}
-                className="text-pink-600 hover:underline"
+                onClick={async () => {
+                  if (await confirmarBonito({
+                    titulo: "Remover foto?",
+                    mensagem: "Sua fotinha será removida do perfil.",
+                    confirmar: "Sim, remover"
+                  })) {
+                    await updatePerfil(perfil.id, { foto_url: null });
+                  }
+                }}
+                className="absolute -right-1 -top-1 grid h-8 w-8 place-items-center rounded-full bg-white text-rose-400 shadow-md ring-1 ring-rose-100 hover:text-rose-600"
+                title="Remover foto"
               >
-                {perfil.foto_url ? "Trocar" : "Escolher foto"}
+                <Trash2 className="h-4 w-4" />
               </button>
-              {perfil.foto_url && (
-                <button
-                  onClick={async () => {
-                    try {
-                      setEditandoFile(await urlToFile(perfil.foto_url!));
-                    } catch {
-                      alertarBonito("Não consegui abrir a foto para edição. Tente novamente! 🌸");
-                    }
-                  }}
-                  className="text-pink-600 hover:underline"
-                >
-                  Editar
-                </button>
-              )}
-            </div>
+            )}
+            <button
+              onClick={() => inputRef.current?.click()}
+              className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full bg-white text-pink-500 shadow-md ring-2 ring-pink-50 hover:bg-pink-50 transition-transform active:scale-90"
+              title={perfil.foto_url ? "Trocar foto" : "Adicionar foto"}
+            >
+              {perfil.foto_url ? <Pencil className="h-4 w-4" /> : <Plus className="h-5 w-5" />}
+            </button>
           </div>
 
           <div className="flex-1 text-center sm:text-left">
