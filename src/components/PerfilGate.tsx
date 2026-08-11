@@ -58,6 +58,7 @@ export function PerfilGate({ children }: { children: ReactNode }) {
 
       // Enviar o e-mail personalizado via API do Resend
       await triggerSendEmail({ data: { email, otp: manualOtp } });
+      window.sessionStorage.setItem("pending_otp_email", email);
       window.sessionStorage.setItem(`otp_${email}`, manualOtp);
       setSent(true);
     } catch (err: any) {
@@ -105,13 +106,24 @@ export function PerfilGate({ children }: { children: ReactNode }) {
     if (otp === savedOtp || otp === "123456") {
       // O código validou! A sessão do Supabase já foi estabelecida no handleAuth 
       // (via signUp ou signInWithPassword). Agora é só limpar e seguir.
+      window.sessionStorage.removeItem("pending_otp_email");
       window.sessionStorage.removeItem(`otp_${email}`);
       window.location.reload(); 
+
     } else {
       setError("Código incorreto. Tente novamente.");
     }
     setLoading(false);
   }
+
+  useEffect(() => {
+    const savedEmail = window.sessionStorage.getItem("pending_otp_email");
+    const savedOtp = window.sessionStorage.getItem(`otp_${savedEmail}`);
+    if (savedEmail && savedOtp && !perfil) {
+      setEmail(savedEmail);
+      setSent(true);
+    }
+  }, [perfil]);
 
   if (!carregado) return null;
 
@@ -158,7 +170,10 @@ export function PerfilGate({ children }: { children: ReactNode }) {
               </button>
               <button
                 type="button"
-                onClick={() => setSent(false)}
+                onClick={() => {
+                  setSent(false);
+                  window.sessionStorage.removeItem("pending_otp_email");
+                }}
                 className="w-full text-xs text-pink-400 hover:text-pink-600 underline underline-offset-2 text-center"
               >
                 Voltar
