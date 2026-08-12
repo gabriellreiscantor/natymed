@@ -1,15 +1,29 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Check, Heart, Sparkles, Volume2, Square } from "lucide-react";
+import {
+  BookOpen,
+  Check,
+  Heart,
+  Loader2,
+  Pencil,
+  Plus,
+  Sparkles,
+  Volume2,
+  Square,
+  X,
+} from "lucide-react";
 import { speak, stopSpeak } from "@/lib/tts";
 
 import {
   loadCurrent,
   loadMarcasResumo,
+  saveResumos,
   setMarcaResumo,
   type CurrentStudy,
   type ResumoMarca,
 } from "@/lib/study-store";
+import { usePerfilAtivo } from "@/lib/perfis-store";
+import { alertarBonito } from "@/components/ConfirmDialog";
 import { StudyPicker } from "@/components/StudyPicker";
 
 export const Route = createFileRoute("/resumos")({
@@ -25,6 +39,9 @@ function ResumosPage() {
   const [current, setCurrent] = useState<CurrentStudy | null>(null);
   const [marcas, setMarcas] = useState<Map<number, ResumoMarca>>(new Map());
   const [filtro, setFiltro] = useState<Filtro>("todos");
+  const { perfil } = usePerfilAtivo();
+  // Só quem enviou o material pode mexer nele: ele é o mesmo para todas.
+  const podeEditar = !!perfil && !!current && current.perfil_id === perfil.id;
 
   useEffect(() => {
     const refresh = () => {
@@ -42,6 +59,40 @@ function ResumosPage() {
     }
     loadMarcasResumo(current.id).then(setMarcas);
   }, [current?.id]);
+
+  async function salvarResumo(
+    indice: number,
+    dados: { titulo: string; texto: string },
+  ) {
+    if (!current) return;
+    const novos = current.resumos.map((r, i) => (i === indice ? dados : r));
+    // Atualiza a tela na hora; se o banco recusar, voltamos ao que estava.
+    const anterior = current;
+    setCurrent({ ...current, resumos: novos });
+    try {
+      await saveResumos(current.id, novos);
+    } catch (e) {
+      setCurrent(anterior);
+      alertarBonito(
+        e instanceof Error ? e.message : "Não consegui salvar esse resumo. 🌷",
+      );
+    }
+  }
+
+  async function acrescentarResumo() {
+    if (!current) return;
+    const novos = [...current.resumos, { titulo: "Novo resumo", texto: "" }];
+    const anterior = current;
+    setCurrent({ ...current, resumos: novos });
+    try {
+      await saveResumos(current.id, novos);
+    } catch (e) {
+      setCurrent(anterior);
+      alertarBonito(
+        e instanceof Error ? e.message : "Não consegui criar o resumo. 🌷",
+      );
+    }
+  }
 
   /** Atualiza na tela na hora e grava no banco em seguida. */
   function alterarMarca(indice: number, patch: { lido?: boolean; favorito?: boolean }) {
@@ -106,11 +157,25 @@ function ResumosPage() {
                   texto={r.texto}
                   lido={!!marca?.lido}
                   favorito={!!marca?.favorito}
+                  podeEditar={podeEditar}
+                  onSalvar={(dados) => salvarResumo(i, dados)}
                   onAlterar={(patch) => alterarMarca(i, patch)}
                 />
               );
             })}
           </div>
+
+          {podeEditar && (
+            <div className="mt-6 text-center">
+              <button
+                onClick={acrescentarResumo}
+                className="inline-flex items-center gap-2 rounded-full border-2 border-dashed border-pink-200 bg-white/60 px-6 py-3 text-sm font-bold text-pink-600 transition-all hover:border-pink-400 hover:bg-pink-50 active:scale-95"
+              >
+                <Plus className="h-4 w-4" />
+                Acrescentar resumo
+              </button>
+            </div>
+          )}
 
           <div className="mt-10 text-center">
             <Link
@@ -209,6 +274,8 @@ function ResumoCard({
   texto,
   lido,
   favorito,
+  podeEditar,
+  onSalvar,
   onAlterar,
 }: {
   index: number;
@@ -216,10 +283,36 @@ function ResumoCard({
   texto: string;
   lido: boolean;
   favorito: boolean;
+  podeEditar: boolean;
+  onSalvar: (dados: { titulo: string; texto: string }) => Promise<void>;
   onAlterar: (patch: { lido?: boolean; favorito?: boolean }) => void;
 }) {
   const blocos = useMemo(() => parseResumo(texto), [texto]);
   const [lendo, setLendo] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [rascunhoTitulo, setRascunhoTitulo] = useState(titulo);
+  const [rascunhoTexto, setRascunhoTexto] = useState(texto);
+  const [salvando, setSalvando] = useState(false);
+
+  function abrirEdicao() {
+    stopSpeak();
+    setLendo(false);
+    setRascunhoTitulo(titulo);
+    setRascunhoTexto(texto);
+    setEditando(true);
+  }
+
+  async function confirmar() {
+    const t = rascunhoTitulo.trim();
+    if (!t) return;
+    setSalvando(true);
+    try {
+      await onSalvar({ titulo: t, texto: rascunhoTexto });
+      setEditando(false);
+    } finally {
+      setSalvando(false);
+    }
+  }
 
   useEffect(() => () => stopSpeak(), []);
 
@@ -244,6 +337,53 @@ function ResumoCard({
     <article className="group relative overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60" />
       <div className="p-6 sm:p-7">
+        {editando ? (
+          <div className="space-y-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/80">
+              Editando o resumo {String(index + 1).padStart(2, "0")}
+            </p>
+            <input
+              value={rascunhoTitulo}
+              onChange={(e) => setRascunhoTitulo(e.target.value)}
+              placeholder="Título do resumo"
+              className="w-full rounded-2xl border border-pink-200 bg-pink-50/30 px-4 py-2.5 font-serif text-xl text-foreground outline-none focus:border-pink-400"
+            />
+            <textarea
+              value={rascunhoTexto}
+              onChange={(e) => setRascunhoTexto(e.target.value)}
+              rows={12}
+              placeholder="Conteúdo do resumo. Use - no começo da linha para virar tópico e **texto** para negrito."
+              className="w-full rounded-2xl border border-pink-200 bg-pink-50/30 px-4 py-3 text-[15px] leading-relaxed text-foreground outline-none focus:border-pink-400"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Dica: comece a linha com <strong>-</strong> para virar tópico e use{" "}
+              <strong>**assim**</strong> para deixar em negrito.
+            </p>
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                onClick={() => setEditando(false)}
+                disabled={salvando}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary/30 disabled:opacity-50"
+              >
+                <X className="h-4 w-4" />
+                Cancelar
+              </button>
+              <button
+                onClick={confirmar}
+                disabled={salvando || !rascunhoTitulo.trim()}
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90 disabled:opacity-50"
+              >
+                {salvando ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+                Salvar
+              </button>
+            </div>
+          </div>
+        ) : (
+        <>
         <header className="flex items-start gap-3">
           <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-secondary text-rose-dark shadow-sm">
             <BookOpen className="h-5 w-5" />
@@ -256,6 +396,16 @@ function ResumoCard({
               {titulo}
             </h2>
           </div>
+          {podeEditar && (
+            <button
+              onClick={abrirEdicao}
+              title="Editar resumo"
+              aria-label="Editar resumo"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-pink-200 bg-white text-pink-500 transition-colors hover:bg-pink-50 hover:text-pink-700"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          )}
           <button
             onClick={() => onAlterar({ favorito: !favorito })}
             title={favorito ? "Tirar dos favoritos" : "Favoritar resumo"}
@@ -301,6 +451,8 @@ function ResumoCard({
             {lido ? "Resumo lido" : "Marcar como lido"}
           </button>
         </div>
+        </>
+        )}
       </div>
     </article>
   );

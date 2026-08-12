@@ -452,3 +452,23 @@ export async function getRankingQuestoes(
     media: Number(r.media),
   }));
 }
+
+// ---------- Edição dos resumos ----------
+
+/**
+ * Regrava a lista de resumos de um estudo.
+ * Os resumos vêm do PDF, mas o parser às vezes erra um título ou corta uma
+ * frase — e às vezes ela só quer acrescentar uma observação da aula. Só a dona
+ * do estudo consegue (o banco também exige isso).
+ */
+export async function saveResumos(
+  estudoId: string,
+  resumos: ParsedPdf["resumos"],
+): Promise<void> {
+  const { error } = await supabase
+    .from("estudos")
+    .update({ resumos: resumos as unknown as Json })
+    .eq("id", estudoId);
+  if (error) throw new Error(error.message);
+  emit();
+}
