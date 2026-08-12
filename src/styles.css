@@ -198,6 +198,17 @@ html,
 body {
   overflow-x: hidden;
   max-width: 100%;
+  /* Safari/Chrome inflam o texto sozinhos ao girar a tela. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Zoom travado no celular: o meta viewport cobre o pinça, e o touch-action
+   abaixo mata o zoom de toque duplo, que o viewport sozinho não impede. */
+@media (max-width: 640px) {
+  html {
+    touch-action: pan-x pan-y;
+  }
 }
 
 /* Palavras muito longas (nomes de matéria, e-mails) quebram em vez de esticar

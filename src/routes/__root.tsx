@@ -110,8 +110,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "viewport",
         // viewport-fit=cover: sem isso o env(safe-area-inset-bottom) volta 0 e
         // a navegação de baixo fica embaixo da barra de gestos do iPhone.
+        // maximum-scale/user-scalable: trava o zoom no celular.
         content:
-          "width=device-width, initial-scale=1, viewport-fit=cover",
+          "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
       },
       { title: "Estudo Rosa — Sua Plataforma Mágica de Estudos" },
       {
