@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { limparResiduosDeHospedagemAntiga } from "../lib/safe-storage";
 import { AppNav } from "../components/AppNav";
 import { PerfilGate } from "../components/PerfilGate";
 import { ConfirmDialogHost } from "../components/ConfirmDialog";
@@ -44,7 +45,23 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    // Resto de hospedagem antiga (service worker, cache, sessão inválida) é a
+    // causa mais comum de a página abrir e sumir. Limpamos aqui para que o
+    // "Tentar de novo" já pegue o app limpo.
+    limparResiduosDeHospedagemAntiga();
   }, [error]);
+
+  const limparERecarregar = () => {
+    try {
+      Object.keys(window.localStorage)
+        .filter((k) => k.startsWith("sb-"))
+        .forEach((k) => window.localStorage.removeItem(k));
+    } catch {
+      /* ignora */
+    }
+    limparResiduosDeHospedagemAntiga();
+    window.location.href = "/";
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -69,6 +86,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           >
             Início
           </a>
+          <button
+            onClick={limparERecarregar}
+            className="inline-flex items-center justify-center rounded-full border border-input bg-background px-5 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary/30"
+          >
+            Limpar dados e recarregar
+          </button>
         </div>
       </div>
     </div>
@@ -133,6 +156,13 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Roda uma vez por carregamento: derruba service worker e cache deixados
+  // pela hospedagem anterior, que serviam arquivos antigos e quebravam a
+  // página em natymed.com.br (funcionava em aba anônima).
+  useEffect(() => {
+    limparResiduosDeHospedagemAntiga();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
