@@ -102,7 +102,9 @@ export async function loadCurrent(): Promise<CurrentStudy | null> {
 
   let data = id ? await pick(id) : null;
 
-  // fallback: pega o estudo mais recente do perfil ativo
+  // Fallback: abre um estudo sozinho em vez de deixar a tela vazia.
+  // A Naty cai no material mais recente dela; a aluna, que não envia PDF,
+  // cai no mais recente que a Naty compartilhou.
   if (!data && perfilId) {
     const { data: recente } = await supabase
       .from("estudos")
@@ -112,6 +114,18 @@ export async function loadCurrent(): Promise<CurrentStudy | null> {
       .limit(1)
       .maybeSingle();
     data = recente;
+    if (data) localStorage.setItem(CURRENT_ID_KEY, data.id);
+  }
+
+  if (!data) {
+    const { data: compartilhado } = await supabase
+      .from("estudos")
+      .select("*")
+      .eq("compartilhado", true)
+      .order("criado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    data = compartilhado;
     if (data) localStorage.setItem(CURRENT_ID_KEY, data.id);
   }
 

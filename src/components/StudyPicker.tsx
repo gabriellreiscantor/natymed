@@ -24,6 +24,9 @@ export function StudyPicker({
   const [meus, setMeus] = useState<StudyListItem[]>([]);
   const [comp, setComp] = useState<StudyListItem[]>([]);
   const { perfil } = usePerfilAtivo();
+  // Só a Naty envia PDF. Para as alunas não faz sentido a aba "Meus":
+  // elas veem direto os materiais que ela compartilhou.
+  const ehAdmin = !!perfil?.is_admin;
 
   const refresh = () => {
     listMeusEstudos().then(setMeus);
@@ -36,10 +39,11 @@ export function StudyPicker({
     return () => window.removeEventListener("estudo:atualizado", refresh);
   }, []);
 
-  const list = tab === "meus" ? meus : comp;
+  const list = !ehAdmin ? comp : tab === "meus" ? meus : comp;
 
   return (
     <div className="mb-6 rounded-3xl border border-border bg-card/70 p-4 shadow-sm">
+      {ehAdmin ? (
       <div className="mb-3 flex gap-1 rounded-full border border-border bg-background p-1 text-xs">
         <button
           onClick={() => setTab("meus")}
@@ -62,12 +66,19 @@ export function StudyPicker({
           Compartilhados
         </button>
       </div>
+      ) : (
+        <p className="mb-3 px-1 text-xs font-medium text-pink-500">
+          Materiais que a Nath preparou para vocês 💗
+        </p>
+      )}
 
       {list.length === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">
-          {tab === "meus"
-            ? "Você ainda não enviou nenhum PDF."
-            : "As amigas ainda não compartilharam nada."}
+          {!ehAdmin
+            ? "A Nath ainda não publicou nenhum material. Volte em breve! 🌷"
+            : tab === "meus"
+              ? "Você ainda não enviou nenhum PDF."
+              : "As amigas ainda não compartilharam nada."}
         </p>
       ) : (
         <ul className="space-y-1.5">
@@ -92,7 +103,7 @@ export function StudyPicker({
                 >
                   <p className="truncate font-medium">{s.nome}</p>
                   <p className="text-[11px] text-muted-foreground">
-                    {tab === "compartilhados" && s.dono_nome && `por ${s.dono_nome} • `}
+                    {(!ehAdmin || tab === "compartilhados") && s.dono_nome && `por ${s.dono_nome} • `}
                     {new Date(s.criado_em).toLocaleDateString("pt-BR")}
                   </p>
                 </button>
