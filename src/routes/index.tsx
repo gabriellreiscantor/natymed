@@ -79,6 +79,26 @@ function LandingPage() {
             <span>O jeito mais fofo de aprender</span>
           </div>
 
+          <div className="mb-10 flex justify-center animate-in zoom-in duration-1000">
+            <div className="relative">
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-pink-400 to-rose-300 opacity-75 blur" />
+              <div className="relative h-48 w-48 overflow-hidden rounded-full border-4 border-white shadow-2xl sm:h-64 sm:w-64">
+                <img
+                  src="/nath-logo.jpeg"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (!target.src.includes("profile-hero.png")) {
+                      target.src = "/profile-hero.png";
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
           <h1 className="animate-in fade-in slide-in-from-bottom-4 duration-700 font-serif text-5xl font-bold tracking-tight text-pink-700 sm:text-7xl">
             Estude com<br />
             <span className="text-rose-dark">amor e foco.</span>
