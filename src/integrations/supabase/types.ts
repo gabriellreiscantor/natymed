@@ -227,6 +227,7 @@ export type Database = {
           concluido: boolean | null
           criado_em: string
           id: string
+          imagem_url: string | null
           perfil_id: string | null
           pergunta: string
           resposta: string
@@ -236,6 +237,7 @@ export type Database = {
           concluido?: boolean | null
           criado_em?: string
           id?: string
+          imagem_url?: string | null
           perfil_id?: string | null
           pergunta: string
           resposta: string
@@ -245,6 +247,7 @@ export type Database = {
           concluido?: boolean | null
           criado_em?: string
           id?: string
+          imagem_url?: string | null
           perfil_id?: string | null
           pergunta?: string
           resposta?: string

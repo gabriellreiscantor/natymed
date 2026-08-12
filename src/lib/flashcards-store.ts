@@ -23,6 +23,8 @@ export interface Flashcard {
   baralho_id: string | null;
   pergunta: string;
   resposta: string;
+  /** Imagem opcional da frente. A pergunta escrita aparece embaixo dela. */
+  imagem_url: string | null;
   criado_em: string;
 }
 
@@ -183,7 +185,7 @@ export async function deleteBaralho(id: string): Promise<void> {
 export async function listCardsByBaralho(baralhoId: string): Promise<Flashcard[]> {
   const { data, error } = await supabase
     .from("flashcards")
-    .select("id, perfil_id, baralho_id, pergunta, resposta, criado_em")
+    .select("id, perfil_id, baralho_id, pergunta, resposta, imagem_url, criado_em")
     .eq("baralho_id", baralhoId)
     .order("criado_em", { ascending: false });
   if (error) {
@@ -226,17 +228,22 @@ export async function createCard(
   perfilId: string,
   pergunta: string,
   resposta: string,
+  imagemUrl: string | null = null,
 ): Promise<void> {
-  const { error } = await supabase
-    .from("flashcards")
-    .insert({ baralho_id: baralhoId, perfil_id: perfilId, pergunta, resposta });
+  const { error } = await supabase.from("flashcards").insert({
+    baralho_id: baralhoId,
+    perfil_id: perfilId,
+    pergunta,
+    resposta,
+    imagem_url: imagemUrl,
+  });
   if (error) console.error("[criar card]", error.message);
   emit();
 }
 
 export async function updateCard(
   id: string,
-  patch: { pergunta?: string; resposta?: string },
+  patch: { pergunta?: string; resposta?: string; imagem_url?: string | null },
 ): Promise<void> {
   await supabase.from("flashcards").update(patch).eq("id", id);
   emit();

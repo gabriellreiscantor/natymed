@@ -4,12 +4,15 @@ import { promptBonito } from "@/components/PromptDialog";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
+  ImagePlus,
+  Loader2,
   Pencil,
   Plus,
   RotateCcw,
   Trash2,
   Trophy,
   User as UserIcon,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +44,7 @@ import {
   updateCard,
 } from "@/lib/flashcards-store";
 import { usePerfilAtivo } from "@/lib/perfis-store";
+import { uploadImagemFlashcard } from "@/lib/upload-avatar";
 
 export const Route = createFileRoute("/flashcards")({
   head: () => ({
@@ -273,10 +277,30 @@ function BaralhoEditor({
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [pergunta, setPergunta] = useState("");
   const [resposta, setResposta] = useState("");
+  const [imagem, setImagem] = useState<string | null>(null);
+  const [enviandoImagem, setEnviandoImagem] = useState(false);
   const [busy, setBusy] = useState(false);
   const [editando, setEditando] = useState<Flashcard | null>(null);
   const [editP, setEditP] = useState("");
   const [editR, setEditR] = useState("");
+  const [editImg, setEditImg] = useState<string | null>(null);
+  const inputImagem = useRef<HTMLInputElement>(null);
+
+  async function escolherImagem(
+    file: File,
+    aplicar: (url: string) => void,
+  ) {
+    setEnviandoImagem(true);
+    try {
+      aplicar(await uploadImagemFlashcard(file));
+    } catch (e) {
+      alertarBonito(
+        e instanceof Error ? e.message : "Não consegui enviar essa imagem. 🌷",
+      );
+    } finally {
+      setEnviandoImagem(false);
+    }
+  }
 
   const refresh = useCallback(async () => {
     setCards(await listCardsByBaralho(baralho.id));
@@ -293,9 +317,11 @@ function BaralhoEditor({
     if (!p || !r) return;
     setBusy(true);
     try {
-      await createCard(baralho.id, perfil.id, p, r);
+      await createCard(baralho.id, perfil.id, p, r, imagem);
       setPergunta("");
       setResposta("");
+      setImagem(null);
+      if (inputImagem.current) inputImagem.current.value = "";
     } finally {
       setBusy(false);
     }
@@ -305,6 +331,7 @@ function BaralhoEditor({
     setEditando(c);
     setEditP(c.pergunta);
     setEditR(c.resposta);
+    setEditImg(c.imagem_url);
   };
 
   const salvarEdicao = async () => {
@@ -312,7 +339,11 @@ function BaralhoEditor({
     const p = editP.trim();
     const r = editR.trim();
     if (!p || !r) return;
-    await updateCard(editando.id, { pergunta: p, resposta: r });
+    await updateCard(editando.id, {
+      pergunta: p,
+      resposta: r,
+      imagem_url: editImg,
+    });
     setEditando(null);
   };
 
@@ -339,8 +370,61 @@ function BaralhoEditor({
           <CardTitle className="font-serif text-xl">Novo cartão</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          {imagem && (
+            <div className="relative overflow-hidden rounded-2xl border border-primary/30">
+              <img
+                src={imagem}
+                alt="Imagem da frente do cartão"
+                className="max-h-56 w-full bg-secondary/30 object-contain"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setImagem(null);
+                  if (inputImagem.current) inputImagem.current.value = "";
+                }}
+                title="Remover imagem"
+                className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white/90 text-pink-600 shadow-md hover:bg-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          <input
+            ref={inputImagem}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) escolherImagem(f, setImagem);
+            }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => inputImagem.current?.click()}
+            disabled={enviandoImagem}
+          >
+            {enviandoImagem ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ImagePlus className="h-4 w-4" />
+            )}
+            {enviandoImagem
+              ? "Enviando..."
+              : imagem
+                ? "Trocar imagem"
+                : "Adicionar imagem (opcional)"}
+          </Button>
+
           <Textarea
-            placeholder="Pergunta (frente do cartão)"
+            placeholder={
+              imagem
+                ? "Pergunta que aparece embaixo da imagem"
+                : "Pergunta (frente do cartão)"
+            }
             value={pergunta}
             onChange={(e) => setPergunta(e.target.value)}
             rows={2}
@@ -373,6 +457,36 @@ function BaralhoEditor({
               >
                 {emEdicao ? (
                   <div className="space-y-2">
+                    {editImg && (
+                      <div className="relative overflow-hidden rounded-xl border border-primary/30">
+                        <img
+                          src={editImg}
+                          alt=""
+                          className="max-h-40 w-full bg-secondary/30 object-contain"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEditImg(null)}
+                          title="Remover imagem"
+                          className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-white/90 text-pink-600 shadow-md hover:bg-white"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                    <label className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-rose-dark hover:underline">
+                      <ImagePlus className="h-3.5 w-3.5" />
+                      {editImg ? "Trocar imagem" : "Adicionar imagem"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) escolherImagem(f, setEditImg);
+                        }}
+                      />
+                    </label>
                     <Textarea
                       value={editP}
                       onChange={(e) => setEditP(e.target.value)}
@@ -387,7 +501,7 @@ function BaralhoEditor({
                       <Button variant="ghost" size="sm" onClick={() => setEditando(null)}>
                         Cancelar
                       </Button>
-                      <Button size="sm" onClick={salvarEdicao}>
+                      <Button size="sm" onClick={salvarEdicao} disabled={enviandoImagem}>
                         Salvar
                       </Button>
                     </div>
@@ -397,6 +511,13 @@ function BaralhoEditor({
                     <div className="mb-2 text-xs uppercase tracking-wide text-rose-dark">
                       Pergunta
                     </div>
+                    {c.imagem_url && (
+                      <img
+                        src={c.imagem_url}
+                        alt=""
+                        className="mb-2 max-h-40 w-full rounded-xl bg-secondary/30 object-contain"
+                      />
+                    )}
                     <p className="whitespace-pre-wrap text-sm">{c.pergunta}</p>
                     <div className="mt-3 mb-1 text-xs uppercase tracking-wide text-rose-dark">
                       Resposta
@@ -838,7 +959,7 @@ function SwipeCard({
           }}
         >
           {/* Frente */}
-          <CardFace label="Pergunta" text={card.pergunta} />
+          <CardFace label="Pergunta" text={card.pergunta} imagem={card.imagem_url} />
           {/* Verso */}
           <CardFace label="Resposta" text={card.resposta} back />
         </div>
@@ -870,10 +991,12 @@ function SwipeCard({
 function CardFace({
   label,
   text,
+  imagem,
   back = false,
 }: {
   label: string;
   text: string;
+  imagem?: string | null;
   back?: boolean;
 }) {
   return (
@@ -891,7 +1014,21 @@ function CardFace({
       <div className="mb-3 text-xs uppercase tracking-[0.2em] text-rose-dark">
         {label}
       </div>
-      <p className="max-h-full whitespace-pre-wrap text-lg font-medium leading-relaxed text-foreground sm:text-xl">
+      {imagem && (
+        // A imagem vai em cima e a pergunta escrita logo abaixo dela.
+        // max-h em vh para o texto nunca ficar espremido em tela pequena.
+        <img
+          src={imagem}
+          alt=""
+          draggable={false}
+          className="mb-3 max-h-[38vh] w-full rounded-2xl object-contain"
+        />
+      )}
+      <p
+        className={`max-h-full whitespace-pre-wrap font-medium leading-relaxed text-foreground ${
+          imagem ? "text-base sm:text-lg" : "text-lg sm:text-xl"
+        }`}
+      >
         {text}
       </p>
       <div className="mt-4 text-[10px] uppercase tracking-widest text-muted-foreground">

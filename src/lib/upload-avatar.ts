@@ -52,6 +52,19 @@ export async function uploadAvatar(file: File): Promise<string> {
   return uploadAvatarBlob(blob);
 }
 
+/**
+ * Imagem de flashcard. Usa o mesmo envio do avatar, mas com lado maior:
+ * aqui a foto é o conteúdo do estudo (um esquema, uma lâmina, um raio-x),
+ * então precisa continuar legível na tela do cartão.
+ */
+export async function uploadImagemFlashcard(file: File): Promise<string> {
+  if (!/^image\//.test(file.type)) {
+    throw new Error("Envie uma imagem (JPG, PNG ou WEBP). 🌸");
+  }
+  const blob = await resizeToBlob(file, 1280);
+  return uploadAvatarBlob(blob);
+}
+
 export async function urlToFile(url: string, name = "foto.jpg"): Promise<File> {
   const res = await fetch(url, { mode: "cors" });
   const blob = await res.blob();
