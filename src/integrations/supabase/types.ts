@@ -373,6 +373,48 @@ export type Database = {
         }
         Relationships: []
       }
+      resumo_marcas: {
+        Row: {
+          atualizado_em: string
+          estudo_id: string
+          favorito: boolean
+          indice: number
+          lido: boolean
+          perfil_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          estudo_id: string
+          favorito?: boolean
+          indice: number
+          lido?: boolean
+          perfil_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          estudo_id?: string
+          favorito?: boolean
+          indice?: number
+          lido?: boolean
+          perfil_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resumo_marcas_estudo_id_fkey"
+            columns: ["estudo_id"]
+            isOneToOne: false
+            referencedRelation: "estudos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resumo_marcas_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quiz_progresso: {
         Row: {
           atualizado_em: string

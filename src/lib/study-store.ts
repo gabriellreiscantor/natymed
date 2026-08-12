@@ -337,3 +337,56 @@ export async function deleteProgresso(estudoId: string) {
     .eq("estudo_id", estudoId);
 }
 
+
+// ---------- Marcas de resumo (lido / favorito) ----------
+
+export interface ResumoMarca {
+  indice: number;
+  lido: boolean;
+  favorito: boolean;
+}
+
+/** Mapa indice -> marca, para o estudo aberto. */
+export async function loadMarcasResumo(
+  estudoId: string,
+): Promise<Map<number, ResumoMarca>> {
+  const perfilId = await getPerfilAtivoId();
+  const mapa = new Map<number, ResumoMarca>();
+  if (!perfilId) return mapa;
+  const { data, error } = await supabase
+    .from("resumo_marcas")
+    .select("indice, lido, favorito")
+    .eq("perfil_id", perfilId)
+    .eq("estudo_id", estudoId);
+  if (error) return mapa;
+  (data ?? []).forEach((m: any) => {
+    mapa.set(m.indice, {
+      indice: m.indice,
+      lido: !!m.lido,
+      favorito: !!m.favorito,
+    });
+  });
+  return mapa;
+}
+
+export async function setMarcaResumo(
+  estudoId: string,
+  indice: number,
+  patch: { lido?: boolean; favorito?: boolean },
+  atual?: ResumoMarca,
+) {
+  const perfilId = await getPerfilAtivoId();
+  if (!perfilId) return;
+  const { error } = await supabase.from("resumo_marcas").upsert(
+    {
+      perfil_id: perfilId,
+      estudo_id: estudoId,
+      indice,
+      lido: patch.lido ?? atual?.lido ?? false,
+      favorito: patch.favorito ?? atual?.favorito ?? false,
+      atualizado_em: new Date().toISOString(),
+    },
+    { onConflict: "perfil_id,estudo_id,indice" },
+  );
+  if (error) console.error("[marca resumo]", error.message);
+}

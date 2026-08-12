@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, RotateCcw, X } from "lucide-react";
+import { Check, RotateCcw, Target, X } from "lucide-react";
 
 import {
   addHistory,
@@ -27,6 +27,9 @@ function QuestoesPage() {
   const [respostas, setRespostas] = useState<Record<number, string>>({});
   const [finalizado, setFinalizado] = useState(false);
   const [salvo, setSalvo] = useState(false);
+  // Quando ela pede para treinar só o que errou, guardamos os índices dessas
+  // questões. É uma rodada de treino: não mexe no progresso salvo do quiz.
+  const [somenteErros, setSomenteErros] = useState<number[] | null>(null);
   const [, setCarregando] = useState(true);
   const navigate = useNavigate();
   // Evita salvar antes de carregar o progresso remoto (não sobrescreve com {} vazio)
@@ -65,19 +68,34 @@ function QuestoesPage() {
     };
   }, [perfil?.id]);
 
-  const total = current?.questoes.length ?? 0;
-  const respondidas = Object.keys(respostas).length;
+  const visiveis = useMemo(() => {
+    if (!current) return [] as number[];
+    return somenteErros ?? current.questoes.map((_, i) => i);
+  }, [current, somenteErros]);
+
+  const total = visiveis.length;
+  const respondidas = visiveis.filter((i) => Boolean(respostas[i])).length;
   const acertos = useMemo(() => {
     if (!current) return 0;
-    return current.questoes.reduce(
-      (acc, q, i) => acc + (respostas[i] === q.gabarito ? 1 : 0),
+    return visiveis.reduce(
+      (acc, i) => acc + (respostas[i] === current.questoes[i].gabarito ? 1 : 0),
       0,
     );
-  }, [current, respostas]);
+  }, [current, respostas, visiveis]);
+
+  /** Índices que ela errou na rodada que acabou de terminar. */
+  const indicesErrados = useMemo(() => {
+    if (!current) return [] as number[];
+    return visiveis.filter(
+      (i) => respostas[i] && respostas[i] !== current.questoes[i].gabarito,
+    );
+  }, [current, respostas, visiveis]);
 
   // Persiste progresso no Supabase sempre que muda
   useEffect(() => {
     if (!current || !prontoParaSalvar.current) return;
+    // Treino de erros não sobrescreve o progresso do quiz completo.
+    if (somenteErros) return;
     if (respondidas === 0 && !finalizado) return;
     saveProgresso(current.id, {
       respostas: Object.fromEntries(
@@ -85,7 +103,7 @@ function QuestoesPage() {
       ),
       finalizado,
     });
-  }, [current, respostas, finalizado, respondidas]);
+  }, [current, respostas, finalizado, respondidas, somenteErros]);
 
   useEffect(() => {
     if (!current || total === 0) return;
@@ -99,19 +117,21 @@ function QuestoesPage() {
       const nota = total > 0 ? Math.round((acertos / total) * 100) / 10 : 0;
       addHistory({
         estudo_id: current.id,
-        nome: current.nome,
+        nome: somenteErros ? `${current.nome} (revisão dos erros)` : current.nome,
         nota,
         acertos,
         total,
         data: new Date().toISOString(),
         respostas: Object.fromEntries(
-          Object.entries(respostas).map(([k, v]) => [String(k), v]),
+          visiveis
+            .filter((i) => respostas[i])
+            .map((i) => [String(i), respostas[i]]),
         ),
       });
 
       setSalvo(true);
     }
-  }, [finalizado, current, salvo, acertos, total, respostas]);
+  }, [finalizado, current, salvo, acertos, total, respostas, visiveis, somenteErros]);
 
 
 
@@ -144,7 +164,26 @@ function QuestoesPage() {
 
   function refazer() {
     if (current) deleteProgresso(current.id);
+    setSomenteErros(null);
     setRespostas({});
+    setFinalizado(false);
+    setSalvo(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  /**
+   * Repetir 40 questões para treinar as 6 que errou desanima. Aqui ela refaz
+   * só o que errou, mantendo as respostas certas de fora da rodada.
+   */
+  function treinarErros() {
+    const erros = indicesErrados;
+    if (erros.length === 0) return;
+    setSomenteErros(erros);
+    setRespostas((r) => {
+      const limpo = { ...r };
+      erros.forEach((i) => delete limpo[i]);
+      return limpo;
+    });
     setFinalizado(false);
     setSalvo(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -174,6 +213,22 @@ function QuestoesPage() {
         </p>
       </div>
 
+      {somenteErros && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-pink-200 bg-pink-50/60 px-4 py-3">
+          <p className="text-sm font-medium text-pink-700">
+            <Target className="mr-1.5 inline h-4 w-4" />
+            Treinando só as {somenteErros.length} que você errou. Essa rodada não
+            altera o quiz completo. 💗
+          </p>
+          <button
+            onClick={refazer}
+            className="rounded-full border border-pink-300 bg-white px-3 py-1.5 text-xs font-bold text-pink-600 hover:bg-pink-50"
+          >
+            Voltar ao quiz inteiro
+          </button>
+        </div>
+      )}
+
 
       <div className="sticky top-[76px] z-20 mb-6 rounded-full border border-border bg-card/95 p-2 shadow-sm backdrop-blur">
         <div className="flex items-center gap-3 px-2">
@@ -190,7 +245,8 @@ function QuestoesPage() {
       </div>
 
       <div className="space-y-5">
-        {current.questoes.map((q, i) => {
+        {visiveis.map((i) => {
+          const q = current.questoes[i];
           const escolhida = respostas[i];
           const respondida = Boolean(escolhida);
           return (
@@ -278,12 +334,25 @@ function QuestoesPage() {
             {mensagem(nota)}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-2">
+            {indicesErrados.length > 0 && (
+              <button
+                onClick={treinarErros}
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:opacity-90"
+              >
+                <Target className="h-4 w-4" />
+                Treinar só os {indicesErrados.length} que errei
+              </button>
+            )}
             <button
               onClick={refazer}
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:opacity-90"
+              className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium ${
+                indicesErrados.length > 0
+                  ? "bg-secondary text-secondary-foreground hover:bg-secondary/70"
+                  : "bg-primary text-primary-foreground shadow-sm hover:opacity-90"
+              }`}
             >
               <RotateCcw className="h-4 w-4" />
-              Refazer o quiz
+              {somenteErros ? "Refazer o quiz inteiro" : "Refazer o quiz"}
             </button>
             <button
               onClick={() => navigate({ to: "/" })}

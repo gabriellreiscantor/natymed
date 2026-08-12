@@ -326,6 +326,14 @@ function HistoryItem({ entry, dona }: { entry: HistoryEntry; dona?: string | nul
                         </span>
                       )}
                     </div>
+                    {!acertou && q.explicacao && (
+                      <div className="ml-8 mt-3 rounded-xl bg-card/70 p-3 text-xs leading-relaxed text-foreground/80">
+                        <p className="mb-1 font-semibold text-rose-dark">
+                          Por que a resposta é {q.gabarito}
+                        </p>
+                        <p>{limparTexto(q.explicacao)}</p>
+                      </div>
+                    )}
                   </li>
                 );
               })}

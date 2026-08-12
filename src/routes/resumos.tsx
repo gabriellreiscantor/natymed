@@ -1,9 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Sparkles, Volume2, Square } from "lucide-react";
+import { BookOpen, Check, Heart, Sparkles, Volume2, Square } from "lucide-react";
 import { speak, stopSpeak } from "@/lib/tts";
 
-import { loadCurrent, type CurrentStudy } from "@/lib/study-store";
+import {
+  loadCurrent,
+  loadMarcasResumo,
+  setMarcaResumo,
+  type CurrentStudy,
+  type ResumoMarca,
+} from "@/lib/study-store";
 import { StudyPicker } from "@/components/StudyPicker";
 
 export const Route = createFileRoute("/resumos")({
@@ -13,8 +19,12 @@ export const Route = createFileRoute("/resumos")({
   component: ResumosPage,
 });
 
+type Filtro = "todos" | "nao_lidos" | "favoritos";
+
 function ResumosPage() {
   const [current, setCurrent] = useState<CurrentStudy | null>(null);
+  const [marcas, setMarcas] = useState<Map<number, ResumoMarca>>(new Map());
+  const [filtro, setFiltro] = useState<Filtro>("todos");
 
   useEffect(() => {
     const refresh = () => {
@@ -24,6 +34,23 @@ function ResumosPage() {
     window.addEventListener("estudo:atualizado", refresh);
     return () => window.removeEventListener("estudo:atualizado", refresh);
   }, []);
+
+  useEffect(() => {
+    if (!current) {
+      setMarcas(new Map());
+      return;
+    }
+    loadMarcasResumo(current.id).then(setMarcas);
+  }, [current?.id]);
+
+  /** Atualiza na tela na hora e grava no banco em seguida. */
+  function alterarMarca(indice: number, patch: { lido?: boolean; favorito?: boolean }) {
+    if (!current) return;
+    const atual = marcas.get(indice) ?? { indice, lido: false, favorito: false };
+    const novo = { ...atual, ...patch };
+    setMarcas((m) => new Map(m).set(indice, novo));
+    setMarcaResumo(current.id, indice, patch, atual);
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -56,10 +83,33 @@ function ResumosPage() {
             {current.nome}
           </p>
 
+          <FiltroResumos
+            filtro={filtro}
+            onMudar={setFiltro}
+            total={current.resumos.length}
+            lidos={current.resumos.filter((_, i) => marcas.get(i)?.lido).length}
+            favoritos={
+              current.resumos.filter((_, i) => marcas.get(i)?.favorito).length
+            }
+          />
+
           <div className="space-y-6">
-            {current.resumos.map((r, i) => (
-              <ResumoCard key={i} index={i} titulo={r.titulo} texto={r.texto} />
-            ))}
+            {current.resumos.map((r, i) => {
+              const marca = marcas.get(i);
+              if (filtro === "nao_lidos" && marca?.lido) return null;
+              if (filtro === "favoritos" && !marca?.favorito) return null;
+              return (
+                <ResumoCard
+                  key={i}
+                  index={i}
+                  titulo={r.titulo}
+                  texto={r.texto}
+                  lido={!!marca?.lido}
+                  favorito={!!marca?.favorito}
+                  onAlterar={(patch) => alterarMarca(i, patch)}
+                />
+              );
+            })}
           </div>
 
           <div className="mt-10 text-center">
@@ -72,6 +122,67 @@ function ResumosPage() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+function FiltroResumos({
+  filtro,
+  onMudar,
+  total,
+  lidos,
+  favoritos,
+}: {
+  filtro: Filtro;
+  onMudar: (f: Filtro) => void;
+  total: number;
+  lidos: number;
+  favoritos: number;
+}) {
+  const opcoes: Array<{ id: Filtro; label: string; contagem: number }> = [
+    { id: "todos", label: "Todos", contagem: total },
+    { id: "nao_lidos", label: "Não lidos", contagem: total - lidos },
+    { id: "favoritos", label: "Favoritos", contagem: favoritos },
+  ];
+
+  return (
+    <div className="mb-6">
+      <div className="mb-3 flex flex-wrap gap-2">
+        {opcoes.map((o) => {
+          const ativo = o.id === filtro;
+          return (
+            <button
+              key={o.id}
+              onClick={() => onMudar(o.id)}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                ativo
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                  : "border-pink-200 bg-white text-pink-700 hover:bg-pink-50"
+              }`}
+            >
+              {o.label}
+              <span
+                className={`rounded-full px-1.5 text-[10px] font-bold ${
+                  ativo ? "bg-white/25" : "bg-pink-50"
+                }`}
+              >
+                {o.contagem}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary/60">
+        <div
+          className="h-full rounded-full bg-primary transition-all"
+          style={{ width: `${total > 0 ? (lidos / total) * 100 : 0}%` }}
+        />
+      </div>
+      <p className="mt-1.5 text-[11px] text-muted-foreground">
+        {lidos === total && total > 0
+          ? "Você leu todos os resumos deste material! 💗"
+          : `${lidos} de ${total} resumos lidos`}
+      </p>
     </div>
   );
 }
@@ -96,10 +207,16 @@ function ResumoCard({
   index,
   titulo,
   texto,
+  lido,
+  favorito,
+  onAlterar,
 }: {
   index: number;
   titulo: string;
   texto: string;
+  lido: boolean;
+  favorito: boolean;
+  onAlterar: (patch: { lido?: boolean; favorito?: boolean }) => void;
 }) {
   const blocos = useMemo(() => parseResumo(texto), [texto]);
   const [lendo, setLendo] = useState(false);
@@ -140,6 +257,18 @@ function ResumoCard({
             </h2>
           </div>
           <button
+            onClick={() => onAlterar({ favorito: !favorito })}
+            title={favorito ? "Tirar dos favoritos" : "Favoritar resumo"}
+            aria-label={favorito ? "Tirar dos favoritos" : "Favoritar resumo"}
+            className={`grid h-10 w-10 shrink-0 place-items-center rounded-full border transition-colors ${
+              favorito
+                ? "border-pink-400 bg-pink-50 text-pink-500"
+                : "border-pink-200 bg-white text-pink-300 hover:bg-pink-50 hover:text-pink-500"
+            }`}
+          >
+            <Heart className={`h-4 w-4 ${favorito ? "fill-current" : ""}`} />
+          </button>
+          <button
             onClick={toggleLeitura}
             title={lendo ? "Parar leitura" : "Ouvir resumo"}
             aria-label={lendo ? "Parar leitura" : "Ouvir resumo"}
@@ -157,6 +286,20 @@ function ResumoCard({
           {blocos.map((b, i) => (
             <BlocoView key={i} bloco={b} />
           ))}
+        </div>
+
+        <div className="mt-6 border-t border-border pt-4">
+          <button
+            onClick={() => onAlterar({ lido: !lido })}
+            className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all active:scale-95 ${
+              lido
+                ? "border-[color:var(--success)]/40 bg-[color:var(--success-bg)] text-[color:var(--success)]"
+                : "border-pink-200 bg-white text-pink-600 hover:bg-pink-50"
+            }`}
+          >
+            <Check className="h-4 w-4" />
+            {lido ? "Resumo lido" : "Marcar como lido"}
+          </button>
         </div>
       </div>
     </article>
