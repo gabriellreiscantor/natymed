@@ -1,5 +1,5 @@
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
-import { ArrowLeft, BookOpen, FileText, History, Layers, Upload, User as UserIcon, LogOut } from "lucide-react";
+import { ArrowLeft, BookOpen, FileText, GraduationCap, History, Layers, Upload, User as UserIcon, LogOut } from "lucide-react";
 import { usePerfilAtivo } from "@/lib/perfis-store";
 import { trocarPerfil } from "@/components/PerfilGate";
 import { iniciais } from "@/lib/upload-avatar";
@@ -9,6 +9,7 @@ const items = [
   { to: "/resumos", label: "Resumos", icon: BookOpen },
   { to: "/questoes", label: "Questões", icon: FileText },
   { to: "/flashcards", label: "Flashcards", icon: Layers },
+  { to: "/faculdade", label: "Faculdade", icon: GraduationCap },
   { to: "/historico", label: "Histórico", icon: History },
 ] as const;
 

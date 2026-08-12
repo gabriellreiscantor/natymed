@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as FaculdadeRouteImport } from './routes/faculdade'
 import { Route as FlashcardsRouteImport } from './routes/flashcards'
 import { Route as HistoricoRouteImport } from './routes/historico'
 import { Route as PerfilRouteImport } from './routes/perfil'
@@ -25,6 +26,11 @@ const IndexRoute = IndexRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaculdadeRoute = FaculdadeRouteImport.update({
+  id: '/faculdade',
+  path: '/faculdade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FlashcardsRoute = FlashcardsRouteImport.update({
@@ -56,6 +62,7 @@ const ResumosRoute = ResumosRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/faculdade': typeof FaculdadeRoute
   '/flashcards': typeof FlashcardsRoute
   '/historico': typeof HistoricoRoute
   '/perfil': typeof PerfilRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/faculdade': typeof FaculdadeRoute
   '/flashcards': typeof FlashcardsRoute
   '/historico': typeof HistoricoRoute
   '/perfil': typeof PerfilRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/faculdade': typeof FaculdadeRoute
   '/flashcards': typeof FlashcardsRoute
   '/historico': typeof HistoricoRoute
   '/perfil': typeof PerfilRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/faculdade'
     | '/flashcards'
     | '/historico'
     | '/perfil'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dashboard'
+    | '/faculdade'
     | '/flashcards'
     | '/historico'
     | '/perfil'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/faculdade'
     | '/flashcards'
     | '/historico'
     | '/perfil'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  FaculdadeRoute: typeof FaculdadeRoute
   FlashcardsRoute: typeof FlashcardsRoute
   HistoricoRoute: typeof HistoricoRoute
   PerfilRoute: typeof PerfilRoute
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faculdade': {
+      id: '/faculdade'
+      path: '/faculdade'
+      fullPath: '/faculdade'
+      preLoaderRoute: typeof FaculdadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/flashcards': {
@@ -178,6 +198,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  FaculdadeRoute: FaculdadeRoute,
   FlashcardsRoute: FlashcardsRoute,
   HistoricoRoute: HistoricoRoute,
   PerfilRoute: PerfilRoute,

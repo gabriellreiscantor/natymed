@@ -12,6 +12,107 @@ export type Database = {
   }
   public: {
     Tables: {
+      avaliacoes: {
+        Row: {
+          criado_em: string
+          data: string | null
+          id: string
+          materia_id: string
+          nome: string
+          nota: number | null
+          perfil_id: string
+        }
+        Insert: {
+          criado_em?: string
+          data?: string | null
+          id?: string
+          materia_id: string
+          nome: string
+          nota?: number | null
+          perfil_id: string
+        }
+        Update: {
+          criado_em?: string
+          data?: string | null
+          id?: string
+          materia_id?: string
+          nome?: string
+          nota?: number | null
+          perfil_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacoes_materia_id_fkey"
+            columns: ["materia_id"]
+            isOneToOne: false
+            referencedRelation: "materias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      materias: {
+        Row: {
+          anotacoes: string | null
+          cor: string
+          criado_em: string
+          faltas: number
+          id: string
+          limite_faltas_pct: number
+          media_para_passar: number
+          meta: number | null
+          nome: string
+          nota_final: number | null
+          perfil_id: string
+          periodo: string | null
+          total_aulas: number
+        }
+        Insert: {
+          anotacoes?: string | null
+          cor?: string
+          criado_em?: string
+          faltas?: number
+          id?: string
+          limite_faltas_pct?: number
+          media_para_passar?: number
+          meta?: number | null
+          nome: string
+          nota_final?: number | null
+          perfil_id: string
+          periodo?: string | null
+          total_aulas?: number
+        }
+        Update: {
+          anotacoes?: string | null
+          cor?: string
+          criado_em?: string
+          faltas?: number
+          id?: string
+          limite_faltas_pct?: number
+          media_para_passar?: number
+          meta?: number | null
+          nome?: string
+          nota_final?: number | null
+          perfil_id?: string
+          periodo?: string | null
+          total_aulas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "materias_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estudos: {
         Row: {
           compartilhado: boolean | null
