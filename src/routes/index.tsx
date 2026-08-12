@@ -79,31 +79,6 @@ function LandingPage() {
             <span>O jeito mais fofo de aprender</span>
           </div>
 
-          <div className="mb-10 flex flex-col items-center animate-in zoom-in duration-1000">
-            <span className="mb-4 font-serif text-xl font-medium text-pink-600">Meu Perfil</span>
-            <Link to="/perfil" className="relative group block">
-              <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-pink-400 to-rose-300 opacity-75 blur transition duration-1000 group-hover:opacity-100" />
-              <div className="relative h-48 w-48 overflow-hidden rounded-full border-4 border-white shadow-2xl transition-transform duration-500 hover:scale-105 active:scale-95 sm:h-64 sm:w-64">
-                <img 
-                  src="/nath-logo.jpeg" 
-                  alt="Acessar Perfil" 
-                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    if (!target.src.includes('profile-hero.png')) {
-                      target.src = '/profile-hero.png';
-                    }
-                  }}
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-pink-500/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  <span className="rounded-full bg-white/90 px-4 py-2 text-sm font-bold text-pink-600 shadow-sm">
-                    Adicione sua fotinha aqui
-                  </span>
-                </div>
-              </div>
-            </Link>
-          </div>
-
           <h1 className="animate-in fade-in slide-in-from-bottom-4 duration-700 font-serif text-5xl font-bold tracking-tight text-pink-700 sm:text-7xl">
             Estude com<br />
             <span className="text-rose-dark">amor e foco.</span>

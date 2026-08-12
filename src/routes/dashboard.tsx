@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { alertarBonito } from "@/components/ConfirmDialog";
 import { useEffect, useRef, useState } from "react";
 import { BookOpen, FileText, Loader2, Upload, Users, Check, X, Sparkles } from "lucide-react";
@@ -90,9 +90,13 @@ function Index() {
       <div className="mx-auto max-w-5xl px-4">
         {/* Cabeçalho do Dashboard */}
         <div className="flex flex-col items-center text-center mb-12">
-          <div className="relative mb-8 h-32 w-32 sm:h-40 sm:w-40 animate-in zoom-in duration-1000">
+          <Link
+            to="/perfil"
+            className="group relative mb-8 block h-32 w-32 sm:h-40 sm:w-40 animate-in zoom-in duration-1000"
+            title="Meu Perfil"
+          >
             <div className="absolute inset-0 animate-pulse rounded-full bg-pink-200/50 blur-2xl" />
-            <div className="relative h-full w-full overflow-hidden rounded-full border-8 border-white bg-pink-100 shadow-2xl ring-1 ring-pink-100">
+            <div className="relative h-full w-full overflow-hidden rounded-full border-8 border-white bg-pink-100 shadow-2xl ring-1 ring-pink-100 transition-transform duration-500 group-hover:scale-105 group-active:scale-95">
               {perfil?.foto_url ? (
                 <img src={perfil.foto_url} alt={perfil.nome} className="h-full w-full object-cover" />
               ) : (
@@ -100,11 +104,16 @@ function Index() {
                   🌸
                 </div>
               )}
+              <div className="absolute inset-0 flex items-center justify-center bg-pink-500/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                <span className="rounded-full bg-white/90 px-3 py-1.5 text-xs font-bold text-pink-600 shadow-sm">
+                  {perfil?.foto_url ? "Meu Perfil" : "Adicione sua fotinha"}
+                </span>
+              </div>
             </div>
             <div className="absolute -bottom-2 -right-2 rounded-full bg-white p-3 shadow-lg animate-bounce text-xl">
               ✨
             </div>
-          </div>
+          </Link>
 
           <span className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-2 text-sm font-medium text-secondary-foreground animate-in slide-in-from-top-4 duration-700 shadow-sm">
             <span className="h-2 w-2 rounded-full bg-primary" />
