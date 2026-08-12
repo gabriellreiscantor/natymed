@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { BookOpen, FileText, History, Layers, Upload, User as UserIcon, LogOut } from "lucide-react";
-import logoAsset from "@/assets/nath-logo.jpeg.asset.json";
 import { usePerfilAtivo } from "@/lib/perfis-store";
 import { trocarPerfil } from "@/components/PerfilGate";
 import { iniciais } from "@/lib/upload-avatar";
@@ -30,7 +29,7 @@ export function AppNav() {
             <div className="relative">
               <span className="block h-20 w-20 shrink-0 overflow-hidden rounded-3xl bg-gradient-to-tr from-pink-200 to-rose-100 shadow-xl ring-4 ring-white transition-all group-hover:shadow-pink-200/50">
                 <img
-                  src={logoAsset.url}
+                  src="/nath-logo.jpeg"
                   alt="Estudo Rosa"
                   className="h-full w-full object-cover"
                 />

@@ -1,7 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BookOpen, CheckCircle2, Sparkles, ArrowRight } from "lucide-react";
-import logoAsset from "@/assets/nath-logo.jpeg.asset.json";
-import heroImage from "@/assets/profile-hero.png.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
