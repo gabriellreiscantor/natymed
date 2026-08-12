@@ -752,14 +752,14 @@ function PlayDeck({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-center">
-            <div className="font-serif text-6xl text-rose-dark">{pontuacao.toFixed(1)}</div>
-            <div className="grid grid-cols-3 gap-2 text-sm">
+            <div className="font-serif text-5xl text-rose-dark sm:text-6xl">{pontuacao.toFixed(1)}</div>
+            <div className="grid grid-cols-3 gap-2 text-xs sm:text-sm">
               <StatMini label="Acertos" value={acertos} color="text-success" />
               <StatMini label="Erros" value={erros} color="text-error" />
               <StatMini label="Dúvidas" value={duvidas} color="text-muted-foreground" />
             </div>
             <p className="text-sm text-muted-foreground">{mensagem}</p>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Button onClick={iniciar} className="flex-1">
                 <RotateCcw className="h-4 w-4" />
                 Jogar de novo

@@ -106,7 +106,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      {
+        name: "viewport",
+        // viewport-fit=cover: sem isso o env(safe-area-inset-bottom) volta 0 e
+        // a navegação de baixo fica embaixo da barra de gestos do iPhone.
+        content:
+          "width=device-width, initial-scale=1, viewport-fit=cover",
+      },
       { title: "Estudo Rosa — Sua Plataforma Mágica de Estudos" },
       {
         name: "description",
@@ -189,7 +195,9 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ConditionalGates>
-        <div className="min-h-screen">
+        {/* pb no celular: a navegação fica fixa embaixo e cobriria o fim da
+            página (botão de salvar, último cartão, rodapé) sem essa folga. */}
+        <div className="min-h-screen pb-24 sm:pb-0">
           <AppNav />
           <Outlet />
         </div>

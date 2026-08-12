@@ -233,7 +233,7 @@ function QuestoesPage() {
       )}
 
 
-      <div className="sticky top-[76px] z-20 mb-6 rounded-full border border-border bg-card/95 p-2 shadow-sm backdrop-blur">
+      <div className="sticky top-16 z-20 mb-6 rounded-full border border-border bg-card/95 p-2 shadow-sm backdrop-blur sm:top-[76px]">
         <div className="flex items-center gap-3 px-2">
           <div className="h-2 flex-1 overflow-hidden rounded-full bg-secondary/60">
             <div
@@ -327,7 +327,7 @@ function QuestoesPage() {
           <p className="text-xs uppercase tracking-wider text-muted-foreground">
             Sua nota
           </p>
-          <p className="mt-2 font-serif text-7xl text-rose-dark">
+          <p className="mt-2 font-serif text-6xl text-rose-dark sm:text-7xl">
             {nota.toFixed(1).replace(".", ",")}
           </p>
           <p className="mt-2 text-muted-foreground">

@@ -179,3 +179,39 @@ html {
 
 
 
+
+/* ---------- Ajustes de celular ---------- */
+
+/* O Safari do iPhone dá zoom sozinho quando o campo tem fonte menor que 16px,
+   e a página fica torta depois. Forçamos 16px em telas pequenas. */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Nada pode empurrar a página para os lados no celular: uma palavra longa ou
+   um elemento decorativo fora da tela criava rolagem horizontal. */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* Palavras muito longas (nomes de matéria, e-mails) quebram em vez de esticar
+   o container e estourar o layout. */
+h1, h2, h3, p, span, li, td, label {
+  overflow-wrap: break-word;
+}
+
+/* Alvo de toque confortável: no celular, botões e links não ficam menores que
+   o recomendado para o dedo. */
+@media (max-width: 640px) and (pointer: coarse) {
+  button,
+  a[href],
+  [role="button"] {
+    touch-action: manipulation;
+  }
+}
