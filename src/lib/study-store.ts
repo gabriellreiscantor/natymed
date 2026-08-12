@@ -52,11 +52,20 @@ export async function createStudy(
   parsed: ParsedPdf,
 ): Promise<CurrentStudy> {
   const perfil = await getProfile();
-  const perfilId = perfil?.id ?? null;
+  if (!perfil) {
+    throw new Error(
+      "Sua sessão expirou. Saia e entre de novo para enviar o material. 🌸",
+    );
+  }
+  if (!perfil.is_admin) {
+    throw new Error(
+      "Só a Naty pode enviar novos materiais para o grupo. 💗",
+    );
+  }
+  const perfilId = perfil.id;
   // A Naty (admin) sobe material para o grupo estudar: já nasce compartilhado,
   // senão ela precisaria liberar cada estudo na mão e as amigas não veriam nada.
-  // Material de aluna continua privado por padrão.
-  const compartilhado = !!perfil?.is_admin;
+  const compartilhado = true;
   const { data, error } = await supabase
     .from("estudos")
     .insert({

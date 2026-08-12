@@ -105,21 +105,47 @@ export async function revokeProfile(id: string) {
  * É o que faz a fila da Naty e a sala de espera reagirem na hora: quando ela
  * aceita alguém, a aluna entra sem esperar o próximo ciclo de verificação.
  * O RLS continua valendo — cada uma só recebe evento do que já podia ler.
+ *
+ * Vários componentes na mesma tela precisam disso, mas o Supabase recusa duas
+ * assinaturas no mesmo tópico — o que derrubava a página. Por isso o app inteiro
+ * compartilha UM canal só, e cada componente apenas entra na lista de avisados.
+ * Se o tempo real falhar (rede, socket bloqueado), o app segue funcionando:
+ * quem depende disso tem verificação periódica de reserva.
  */
+const ouvintesRealtime = new Set<() => void>();
+let canalRealtime: ReturnType<typeof supabase.channel> | null = null;
+
 export function assinarPerfisRealtime(cb: () => void) {
   if (typeof window === "undefined") return () => {};
 
-  const canal = supabase
-    .channel("perfis-tempo-real")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "profiles" },
-      () => cb(),
-    )
-    .subscribe();
+  ouvintesRealtime.add(cb);
+
+  if (!canalRealtime) {
+    try {
+      canalRealtime = supabase
+        .channel("perfis-tempo-real")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "profiles" },
+          () => ouvintesRealtime.forEach((fn) => fn()),
+        )
+        .subscribe();
+    } catch (e) {
+      console.error("[realtime perfis]", e);
+      canalRealtime = null;
+    }
+  }
 
   return () => {
-    supabase.removeChannel(canal);
+    ouvintesRealtime.delete(cb);
+    if (ouvintesRealtime.size === 0 && canalRealtime) {
+      try {
+        supabase.removeChannel(canalRealtime);
+      } catch {
+        /* o canal já morreu junto com a página */
+      }
+      canalRealtime = null;
+    }
   };
 }
 
