@@ -1,3 +1,9 @@
+import {
+  ehErroDeVersaoAntiga,
+  limparTravaDeVersao,
+  recarregarUmaVezPorVersaoNova,
+} from "./versao-nova";
+
 type PdfJsLib = typeof import("pdfjs-dist/legacy/build/pdf.mjs");
 
 let pdfjsPromise: Promise<PdfJsLib> | null = null;
@@ -40,7 +46,30 @@ async function loadPdfJs() {
     return pdfjsLib;
   });
 
-  return pdfjsPromise;
+  try {
+    const lib = await pdfjsPromise;
+    limparTravaDeVersao();
+    return lib;
+  } catch (erro) {
+    // Sem isso a promessa quebrada ficava guardada e TODA tentativa seguinte
+    // falhava igual, mesmo depois do problema já ter passado.
+    pdfjsPromise = null;
+
+    if (ehErroDeVersaoAntiga(erro)) {
+      // Arquivo sumiu porque saiu uma versão nova enquanto a página estava
+      // aberta. Recarregar resolve; se já tentamos, avisamos com clareza.
+      if (recarregarUmaVezPorVersaoNova()) {
+        throw new Error("Saiu uma versão nova do site. Atualizando...");
+      }
+      throw new Error(
+        "O site foi atualizado e esta aba ficou para trás. Recarregue a página (Ctrl+F5, ou Cmd+Shift+R no Mac) e tente de novo. 🌸",
+      );
+    }
+
+    throw new Error(
+      "Não consegui carregar o leitor de PDF. Confira sua internet e tente de novo. 🌷",
+    );
+  }
 }
 
 

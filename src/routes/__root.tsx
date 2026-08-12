@@ -13,6 +13,10 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { limparResiduosDeHospedagemAntiga } from "../lib/safe-storage";
+import {
+  ehErroDeVersaoAntiga,
+  recarregarUmaVezPorVersaoNova,
+} from "../lib/versao-nova";
 import { AppNav } from "../components/AppNav";
 import { PerfilGate } from "../components/PerfilGate";
 import { ConfirmDialogHost } from "../components/ConfirmDialog";
@@ -162,6 +166,24 @@ function RootComponent() {
   // página em natymed.com.br (funcionava em aba anônima).
   useEffect(() => {
     limparResiduosDeHospedagemAntiga();
+  }, []);
+
+  // Publicamos uma versão nova e a aba dela continua com a antiga? Os arquivos
+  // que o navegador ainda espera não existem mais no servidor. O Vite avisa
+  // nesses casos e a gente recarrega sozinho, em vez de quebrar na cara dela.
+  useEffect(() => {
+    const aoFalharPreload = () => {
+      recarregarUmaVezPorVersaoNova();
+    };
+    const aoRejeitar = (e: PromiseRejectionEvent) => {
+      if (ehErroDeVersaoAntiga(e.reason)) recarregarUmaVezPorVersaoNova();
+    };
+    window.addEventListener("vite:preloadError", aoFalharPreload);
+    window.addEventListener("unhandledrejection", aoRejeitar);
+    return () => {
+      window.removeEventListener("vite:preloadError", aoFalharPreload);
+      window.removeEventListener("unhandledrejection", aoRejeitar);
+    };
   }, []);
 
   return (
