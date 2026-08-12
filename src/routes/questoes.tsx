@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, RotateCcw, Target, Trophy, X } from "lucide-react";
+import { Check, FileText, RotateCcw, Target, Trophy, X } from "lucide-react";
 
 import {
   addHistory,
@@ -32,6 +32,7 @@ function QuestoesPage() {
   // Quando ela pede para treinar só o que errou, guardamos os índices dessas
   // questões. É uma rodada de treino: não mexe no progresso salvo do quiz.
   const [somenteErros, setSomenteErros] = useState<number[] | null>(null);
+  const [aba, setAba] = useState<"quiz" | "ranking">("quiz");
   const [, setCarregando] = useState(true);
   const navigate = useNavigate();
   // Evita salvar antes de carregar o progresso remoto (não sobrescreve com {} vazio)
@@ -208,6 +209,40 @@ function QuestoesPage() {
         <h1 className="text-4xl">Questões</h1>
       </div>
 
+      <div className="mb-6 flex gap-1 rounded-full border border-border bg-card p-1 text-sm">
+        <button
+          onClick={() => setAba("quiz")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 font-medium transition ${
+            aba === "quiz"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-rose-dark"
+          }`}
+        >
+          <FileText className="h-4 w-4" />
+          Quiz
+        </button>
+        <button
+          onClick={() => setAba("ranking")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 font-medium transition ${
+            aba === "ranking"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-rose-dark"
+          }`}
+        >
+          <Trophy className="h-4 w-4" />
+          Ranking
+        </button>
+      </div>
+
+      {aba === "ranking" ? (
+        <RankingQuestoesSecao
+          estudoId={current.id}
+          estudoNome={current.nome}
+          recarregarEm={salvo}
+          meuId={perfil?.id ?? null}
+        />
+      ) : (
+      <>
       <StudyPicker currentId={current.id} onPick={() => {}} />
 
       <div className="mb-6">
@@ -372,13 +407,8 @@ function QuestoesPage() {
           </div>
         </div>
       )}
-
-      <RankingQuestoesSecao
-        estudoId={current.id}
-        estudoNome={current.nome}
-        recarregarEm={salvo}
-        meuId={perfil?.id ?? null}
-      />
+      </>
+      )}
     </div>
   );
 }
@@ -414,7 +444,7 @@ function RankingQuestoesSecao({
   }, [escopo, estudoId, recarregarEm]);
 
   return (
-    <section className="mt-10 rounded-3xl border border-border bg-card p-6 shadow-sm">
+    <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <Trophy className="h-5 w-5 text-primary" />
         <h2 className="font-serif text-xl">Ranking das MedGatas</h2>

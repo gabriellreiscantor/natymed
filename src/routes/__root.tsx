@@ -128,10 +128,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      // Nome que aparece embaixo do ícone quando ela salva na tela de início.
+      { name: "application-name", content: "Estudo Rosa" },
+      { name: "apple-mobile-web-app-title", content: "Estudo Rosa" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      {
+        name: "apple-mobile-web-app-status-bar-style",
+        content: "default",
+      },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "theme-color", content: "#EC7FA9" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
+      // Android/Chrome leem o manifesto; o iPhone usa o apple-touch-icon.
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icone-180.png", sizes: "180x180" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "preconnect",

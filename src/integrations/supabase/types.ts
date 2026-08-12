@@ -354,6 +354,7 @@ export type Database = {
           is_admin: boolean | null
           nome: string
           periodo: string | null
+          recusado_em: string | null
         }
         Insert: {
           criado_at?: string | null
@@ -365,6 +366,7 @@ export type Database = {
           is_admin?: boolean | null
           nome: string
           periodo?: string | null
+          recusado_em?: string | null
         }
         Update: {
           criado_at?: string | null
@@ -376,6 +378,7 @@ export type Database = {
           is_admin?: boolean | null
           nome?: string
           periodo?: string | null
+          recusado_em?: string | null
         }
         Relationships: []
       }

@@ -10,6 +10,8 @@ export interface Profile {
   foto_url: string | null;
   data_nascimento: string | null;
   periodo: string | null;
+  /** Preenchido quando a Naty recusa a solicitação. Reversível. */
+  recusado_em: string | null;
   criado_at: string;
 }
 
@@ -47,6 +49,7 @@ export async function getProfile(): Promise<Profile | null> {
     is_admin: !!data.is_admin,
     is_accepted: !!data.is_accepted,
     periodo: (data as any).periodo ?? null,
+    recusado_em: (data as any).recusado_em ?? null,
     criado_at: data.criado_at || new Date().toISOString()
   } as Profile;
 }
@@ -66,14 +69,37 @@ export async function listAllProfiles(): Promise<Profile[]> {
     is_admin: !!d.is_admin,
     is_accepted: !!d.is_accepted,
     periodo: (d as any).periodo ?? null,
+    recusado_em: (d as any).recusado_em ?? null,
     criado_at: d.criado_at || new Date().toISOString()
   })) as Profile[];
 }
 
 export async function acceptProfile(id: string) {
+  // Aceitar sempre limpa uma recusa anterior: senão ela voltaria para a fila
+  // aceita, mas ainda marcada como recusada.
   const { error } = await supabase
     .from("profiles")
-    .update({ is_accepted: true })
+    .update({ is_accepted: true, recusado_em: null })
+    .eq("id", id);
+  if (error) throw error;
+  emit();
+}
+
+/** Recusa a solicitação. Não apaga nada e pode ser desfeito depois. */
+export async function rejectProfile(id: string) {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ is_accepted: false, recusado_em: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+  emit();
+}
+
+/** Devolve a aluna recusada para a fila de espera. */
+export async function undoRejectProfile(id: string) {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ recusado_em: null })
     .eq("id", id);
   if (error) throw error;
   emit();
@@ -155,7 +181,8 @@ export async function countPendentes(): Promise<number> {
     .from("profiles")
     .select("id", { count: "exact", head: true })
     .eq("is_accepted", false)
-    .eq("is_admin", false);
+    .eq("is_admin", false)
+    .is("recusado_em", null);
   if (error) return 0;
   return count ?? 0;
 }

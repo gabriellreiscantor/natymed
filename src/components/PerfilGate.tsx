@@ -120,7 +120,8 @@ export function PerfilGate({ children }: { children: ReactNode }) {
 
   // A sala de espera reage em tempo real (o perfil é assinado no store).
   // O intervalo abaixo fica só como rede de segurança, caso o socket caia.
-  const naFila = !!perfil && !perfil.is_accepted && !perfil.is_admin;
+  const naFila =
+    !!perfil && !perfil.is_accepted && !perfil.is_admin && !perfil.recusado_em;
   useEffect(() => {
     if (!naFila) return;
     const id = window.setInterval(refreshPerfil, 60_000);
@@ -211,6 +212,35 @@ export function PerfilGate({ children }: { children: ReactNode }) {
     // Se perfil.is_accepted for falso, ele cai na sala de espera.
     // O problema é que o perfil é carregado assim que o auth.session existe.
     if (!perfil.is_accepted && !perfil.is_admin) {
+      // Recusada: sem isso ela ficava para sempre na sala de espera achando
+      // que a Naty ainda não tinha visto.
+      if (perfil.recusado_em) {
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-pink-50/80 px-4 backdrop-blur-md">
+            <div className="w-full max-w-md rounded-[2.5rem] border border-pink-100 bg-white p-10 text-center shadow-2xl">
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-pink-50 text-4xl shadow-inner">
+                🌷
+              </div>
+              <h2 className="font-serif text-3xl text-pink-700">
+                Acesso não liberado
+              </h2>
+              <p className="mt-4 leading-relaxed text-pink-600/80">
+                Sua solicitação foi analisada e não foi liberada desta vez. Se
+                você acha que houve engano, fale com a{" "}
+                <strong className="text-pink-600">Naty</strong> — ela consegue
+                reabrir seu acesso.
+              </p>
+              <button
+                onClick={logoutGlobal}
+                className="mt-8 text-sm text-pink-400 underline underline-offset-4 hover:text-pink-600"
+              >
+                Sair da conta
+              </button>
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-pink-50/80 px-4 backdrop-blur-md">
           <div className="w-full max-w-md rounded-[2.5rem] border border-pink-100 bg-white p-10 text-center shadow-2xl">

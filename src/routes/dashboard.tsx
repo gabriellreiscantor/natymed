@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { alertarBonito, confirmarBonito } from "@/components/ConfirmDialog";
 import { useEffect, useRef, useState } from "react";
-import { BookOpen, FileText, Loader2, Upload, Users, Check, X, Sparkles } from "lucide-react";
-import { usePerfilAtivo, listAllProfiles, acceptProfile, revokeProfile, countPendentes, assinarPerfisRealtime } from "@/lib/perfis-store";
+import { BookOpen, FileText, Loader2, RotateCcw, Upload, Users, Check, X, Sparkles } from "lucide-react";
+import { usePerfilAtivo, listAllProfiles, acceptProfile, revokeProfile, rejectProfile, undoRejectProfile, countPendentes, assinarPerfisRealtime } from "@/lib/perfis-store";
 
 import { extractTextFromPdf, parseStudyText } from "@/lib/pdf-parser";
 import { createStudy, loadCurrent, type CurrentStudy } from "@/lib/study-store";
@@ -353,8 +353,9 @@ function AdminPanel() {
     return assinarPerfisRealtime(load);
   }, []);
 
-  const pendentes = profiles.filter(p => !p.is_accepted && !p.is_admin);
+  const pendentes = profiles.filter(p => !p.is_accepted && !p.is_admin && !p.recusado_em);
   const aceitos = profiles.filter(p => p.is_accepted && !p.is_admin);
+  const recusadas = profiles.filter(p => !p.is_accepted && !p.is_admin && p.recusado_em);
 
   return (
     <div className="animate-in fade-in slide-in-from-right-4 duration-500">
@@ -404,12 +405,64 @@ function AdminPanel() {
           </div>
         </section>
       </div>
+
+      {recusadas.length > 0 && (
+        <section className="mt-10">
+          <div className="mb-4 flex items-center gap-2 px-2">
+            <X className="h-4 w-4 text-muted-foreground" />
+            <h3 className="font-serif text-xl text-pink-800">
+              Recusadas ({recusadas.length})
+            </h3>
+          </div>
+          <p className="mb-3 px-2 text-xs text-muted-foreground">
+            Elas não entram no site e não aparecem na fila. Nada foi apagado —
+            você pode devolver para a fila quando quiser.
+          </p>
+          <div className="grid gap-3 lg:grid-cols-2">
+            {recusadas.map(p => (
+              <ProfileRow key={p.id} profile={p} onAction={load} variant="rejected" />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
 
-function ProfileRow({ profile, onAction, variant = "pending" }: { profile: any, onAction: () => void, variant?: "pending" | "accepted" }) {
+function ProfileRow({ profile, onAction, variant = "pending" }: { profile: any, onAction: () => void, variant?: "pending" | "accepted" | "rejected" }) {
   const [loading, setLoading] = useState(false);
+
+  async function comAviso(acao: () => Promise<void>, erro: string) {
+    setLoading(true);
+    try {
+      await acao();
+      onAction();
+    } catch (e) {
+      alertarBonito(erro);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleReject() {
+    const ok = await confirmarBonito({
+      titulo: "Recusar solicitação?",
+      mensagem: `${profile.nome} não vai entrar no site e sai da sua fila. Nada é apagado: você pode devolver para a fila depois, se mudar de ideia.`,
+      confirmar: "Recusar",
+    });
+    if (!ok) return;
+    comAviso(
+      () => rejectProfile(profile.id),
+      "Ops! Não consegui recusar essa solicitação. Tente novamente! 🌸",
+    );
+  }
+
+  async function handleUndoReject() {
+    comAviso(
+      () => undoRejectProfile(profile.id),
+      "Ops! Não consegui devolver ela para a fila. Tente novamente! 🌸",
+    );
+  }
 
   async function handleAccept() {
     setLoading(true);
@@ -465,13 +518,33 @@ function ProfileRow({ profile, onAction, variant = "pending" }: { profile: any, 
       </div>
       
       {variant === "pending" ? (
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            onClick={handleReject}
+            disabled={loading}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-rose-200 bg-white text-rose-400 transition-all hover:bg-rose-50 hover:text-rose-600 active:scale-90 disabled:opacity-50"
+            title="Recusar solicitação"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <button
+            onClick={handleAccept}
+            disabled={loading}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-pink-500 text-white shadow-lg shadow-pink-100 transition-all hover:bg-pink-600 active:scale-90 disabled:opacity-50"
+            title="Aceitar MedGata"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-5 w-5" />}
+          </button>
+        </div>
+      ) : variant === "rejected" ? (
         <button
-          onClick={handleAccept}
+          onClick={handleUndoReject}
           disabled={loading}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pink-500 text-white shadow-lg shadow-pink-100 transition-all hover:bg-pink-600 active:scale-90 disabled:opacity-50"
-          title="Aceitar MedGata"
+          className="flex shrink-0 items-center gap-1.5 rounded-full border border-pink-200 bg-white px-3 py-2 text-xs font-bold text-pink-600 transition-all hover:bg-pink-50 active:scale-95 disabled:opacity-50"
+          title="Devolver para a fila"
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-5 w-5" />}
+          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+          Devolver à fila
         </button>
       ) : (
         <button
