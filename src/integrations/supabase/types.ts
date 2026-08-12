@@ -190,6 +190,7 @@ export type Database = {
         Row: {
           code_hash: string
           consumido: boolean
+          consumido_em: string | null
           criado_em: string
           email: string
           expira_em: string
@@ -208,6 +209,7 @@ export type Database = {
         Update: {
           code_hash?: string
           consumido?: boolean
+          consumido_em?: string | null
           criado_em?: string
           email?: string
           expira_em?: string

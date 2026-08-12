@@ -5,6 +5,7 @@ import { createHash, randomInt, timingSafeEqual } from "node:crypto";
 const OTP_TTL_MIN = 10;
 const MAX_TENTATIVAS = 5;
 const JANELA_REENVIO_SEG = 60;
+const JANELA_REUSO_SEG = 120;
 
 function hashCode(email: string, code: string) {
   const pepper = process.env["OTP_PEPPER"] ?? "";
@@ -191,38 +192,61 @@ export const verifyOtp = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const email = data.email.toLowerCase().trim();
-    const generico = "Código inválido ou expirado. Peça um novo. 🌸";
 
+    // Pega o codigo mais recente do e-mail, consumido ou nao. Se ele acabou
+    // de ser consumido com o MESMO codigo, aceitamos de novo — isso cobre
+    // duplo clique no botao, que antes virava "codigo invalido".
     const { data: registro } = await supabaseAdmin
       .from("otp_codes")
       .select("*")
       .eq("email", email)
-      .eq("consumido", false)
       .order("criado_em", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (!registro) throw new Error(generico);
-
-    if (new Date(registro.expira_em).getTime() < Date.now()) {
-      await supabaseAdmin.from("otp_codes").update({ consumido: true }).eq("id", registro.id);
-      throw new Error(generico);
+    if (!registro) {
+      throw new Error("Nenhum código pendente para este e-mail. Peça um novo. 🌸");
     }
 
-    if (registro.tentativas >= MAX_TENTATIVAS) {
-      await supabaseAdmin.from("otp_codes").update({ consumido: true }).eq("id", registro.id);
-      throw new Error("Muitas tentativas. Peça um código novo, MedGata. 🌸");
-    }
+    const confere = comparaSeguro(registro.code_hash, hashCode(email, data.otp));
 
-    if (!comparaSeguro(registro.code_hash, hashCode(email, data.otp))) {
-      await supabaseAdmin
-        .from("otp_codes")
-        .update({ tentativas: registro.tentativas + 1 })
-        .eq("id", registro.id);
-      throw new Error(generico);
-    }
+    if (registro.consumido) {
+      const consumidoHa = registro.consumido_em
+        ? (Date.now() - new Date(registro.consumido_em).getTime()) / 1000
+        : Infinity;
+      if (!(confere && consumidoHa <= JANELA_REUSO_SEG)) {
+        throw new Error("Este código já foi usado. Peça um novo. 🌸");
+      }
+    } else {
+      if (new Date(registro.expira_em).getTime() < Date.now()) {
+        await supabaseAdmin
+          .from("otp_codes")
+          .update({ consumido: true, consumido_em: new Date().toISOString() })
+          .eq("id", registro.id);
+        throw new Error("Seu código expirou. Peça um novo. 🌸");
+      }
 
-    await supabaseAdmin.from("otp_codes").update({ consumido: true }).eq("id", registro.id);
+      if (registro.tentativas >= MAX_TENTATIVAS) {
+        await supabaseAdmin
+          .from("otp_codes")
+          .update({ consumido: true, consumido_em: new Date().toISOString() })
+          .eq("id", registro.id);
+        throw new Error("Muitas tentativas. Peça um código novo, MedGata. 🌸");
+      }
+
+      if (!confere) {
+        const restantes = MAX_TENTATIVAS - (registro.tentativas + 1);
+        await supabaseAdmin
+          .from("otp_codes")
+          .update({ tentativas: registro.tentativas + 1 })
+          .eq("id", registro.id);
+        throw new Error(
+          restantes > 0
+            ? `Código incorreto. Você ainda tem ${restantes} tentativa${restantes > 1 ? "s" : ""}. 🌸`
+            : "Código incorreto. Peça um novo. 🌸",
+        );
+      }
+    }
 
     // Código conferido: agora sim emitimos a sessão.
     const auth = await criarClienteAuth();
@@ -230,7 +254,19 @@ export const verifyOtp = createServerFn({ method: "POST" })
       email,
       password: data.password,
     });
-    if (error || !sessao.session) throw new Error(generico);
+
+    if (error || !sessao.session) {
+      // O código estava certo; o problema foi a senha/sessão. Não queimamos
+      // o código, para ela poder tentar de novo sem pedir outro e-mail.
+      throw new Error(
+        "Código certo, mas não consegui abrir a sessão. Tente novamente. 🌸",
+      );
+    }
+
+    await supabaseAdmin
+      .from("otp_codes")
+      .update({ consumido: true, consumido_em: new Date().toISOString() })
+      .eq("id", registro.id);
 
     return {
       access_token: sessao.session.access_token,

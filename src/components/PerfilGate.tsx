@@ -67,6 +67,7 @@ export function PerfilGate({ children }: { children: ReactNode }) {
 
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError(null);
 
@@ -79,7 +80,11 @@ export function PerfilGate({ children }: { children: ReactNode }) {
         access_token: sessao.access_token,
         refresh_token: sessao.refresh_token,
       });
-      if (sessErr) throw sessErr;
+      if (sessErr) {
+        throw new Error(
+          "Código validado, mas não consegui salvar sua sessão neste navegador. Se estiver em aba anônima ou com cookies bloqueados, tente numa aba normal. 🌸",
+        );
+      }
 
       window.sessionStorage.removeItem("pending_otp_email");
       window.location.reload();
@@ -127,7 +132,12 @@ export function PerfilGate({ children }: { children: ReactNode }) {
                 required
                 autoFocus
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                onChange={(e) =>
+                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
                 placeholder="000000"
                 className="w-full rounded-full border border-pink-100 bg-pink-50/30 px-6 py-4 text-center text-2xl tracking-[0.5em] font-bold text-pink-700 outline-none focus:border-pink-300"
               />
