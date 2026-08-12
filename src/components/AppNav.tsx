@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
-import { BookOpen, FileText, History, Layers, Upload, User as UserIcon, LogOut } from "lucide-react";
+import { Link, useLocation, useRouter } from "@tanstack/react-router";
+import { ArrowLeft, BookOpen, FileText, History, Layers, Upload, User as UserIcon, LogOut } from "lucide-react";
 import { usePerfilAtivo } from "@/lib/perfis-store";
 import { trocarPerfil } from "@/components/PerfilGate";
 import { iniciais } from "@/lib/upload-avatar";
@@ -12,18 +12,41 @@ const items = [
   { to: "/historico", label: "Histórico", icon: History },
 ] as const;
 
-import { useLocation } from "@tanstack/react-router";
-
 export function AppNav() {
   const { perfil } = usePerfilAtivo();
   const location = useLocation();
+  const router = useRouter();
   const isPublic = location.pathname === "/";
+  // No Início não faz sentido oferecer "voltar": já é a primeira tela de dentro.
+  const isInicio = location.pathname === "/dashboard";
 
   if (isPublic) return null;
+
+  function voltar() {
+    // Se a aluna abriu o link direto (sem histórico na aba), o back do
+    // navegador sairia do site. Nesse caso mandamos para o Início.
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.history.back();
+    } else {
+      router.navigate({ to: "/dashboard" });
+    }
+  }
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur">
       <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 sm:items-center sm:py-4">
+        {!isInicio && (
+          <div className="flex w-full justify-start">
+            <button
+              type="button"
+              onClick={voltar}
+              className="inline-flex items-center gap-1.5 rounded-full border border-pink-200 bg-white/70 px-3 py-1.5 text-xs font-bold text-pink-600 shadow-sm transition-all hover:bg-pink-50 active:scale-95"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Voltar
+            </button>
+          </div>
+        )}
         <div className="flex w-full items-center justify-between gap-2 sm:justify-center sm:relative">
           <Link to="/dashboard" className="flex items-center gap-6 group transition-transform hover:scale-[1.02]">
             <div className="relative">
