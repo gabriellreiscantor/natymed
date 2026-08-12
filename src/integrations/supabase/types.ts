@@ -216,6 +216,24 @@ export type Database = {
         }
         Relationships: []
       }
+      perfis_publicos: {
+        Row: {
+          foto_url: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          foto_url?: string | null
+          id: string
+          nome: string
+        }
+        Update: {
+          foto_url?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           criado_at: string | null

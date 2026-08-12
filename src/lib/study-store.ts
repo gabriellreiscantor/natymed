@@ -146,12 +146,12 @@ async function fetchDonos(
   const map = new Map<string, { nome: string; foto_url: string | null }>();
   if (!filtered.length) return map;
   const { data } = await supabase
-    .from("profiles")
+    .from("perfis_publicos")
     .select("id, nome, foto_url")
     .in("id", filtered);
-  (data ?? []).forEach((p) =>
-    map.set(p.id, { nome: p.nome, foto_url: p.foto_url }),
-  );
+  (data ?? []).forEach((p) => {
+    map.set(p.id, { nome: p.nome, foto_url: p.foto_url });
+  });
   return map;
 }
 
