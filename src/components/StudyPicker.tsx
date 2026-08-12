@@ -68,14 +68,14 @@ export function StudyPicker({
       </div>
       ) : (
         <p className="mb-3 px-1 text-xs font-medium text-pink-500">
-          Materiais que a Nath preparou para vocês 💗
+          Materiais que a Naty preparou para vocês 💗
         </p>
       )}
 
       {list.length === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">
           {!ehAdmin
-            ? "A Nath ainda não publicou nenhum material. Volte em breve! 🌷"
+            ? "A Naty ainda não publicou nenhum material. Volte em breve! 🌷"
             : tab === "meus"
               ? "Você ainda não enviou nenhum PDF."
               : "As amigas ainda não compartilharam nada."}

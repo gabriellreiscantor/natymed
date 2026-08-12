@@ -538,10 +538,10 @@ function ConviteAdmin() {
   const { perfil } = usePerfilAtivo();
   const [copiado, setCopiado] = useState(false);
   
-  if (perfil?.nome !== "Nath") return null;
+  if (!perfil?.is_admin) return null;
 
   const urlBase = typeof window !== "undefined" ? window.location.origin : "";
-  const linkConvite = `${urlBase}/?convite=nath`;
+  const linkConvite = `${urlBase}/?convite=naty`;
 
   function copiar() {
     navigator.clipboard.writeText(linkConvite);
@@ -553,7 +553,7 @@ function ConviteAdmin() {
     <div className="mt-6 rounded-3xl border border-rose-100 bg-rose-50/30 p-6 shadow-sm">
       <div className="flex items-center gap-2">
         <Plus className="h-5 w-5 text-rose-500" />
-        <h2 className="font-serif text-2xl text-rose-700">Painel da Nath</h2>
+        <h2 className="font-serif text-2xl text-rose-700">Painel da Naty</h2>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
         Use o link abaixo para convidar suas amigas. Apenas quem tiver esse link poderá registrar um novo perfil.

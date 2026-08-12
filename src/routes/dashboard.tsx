@@ -190,7 +190,7 @@ function Index() {
                 {perfil?.is_admin ? (
                   "Sua plataforma está pronta! Envie seus materiais para transformar o estudo em algo mágico para você e suas amigas."
                 ) : (
-                  "Explore os conteúdos incríveis que a Nath preparou. Cada resumo e cada questão foi pensado para ajudar você a conquistar seus sonhos!"
+                  "Explore os conteúdos incríveis que a Naty preparou. Cada resumo e cada questão foi pensado para ajudar você a conquistar seus sonhos!"
                 )}
               </p>
 
@@ -280,7 +280,7 @@ function Index() {
                       👸
                     </div>
                     <p className="text-lg text-pink-700 font-medium">
-                      Apenas a <strong>Nath (Admin)</strong> pode enviar novos estudos para manter tudo organizadinho e com o padrão Estudo Rosa. ✨
+                      Apenas a <strong>Naty (Admin)</strong> pode enviar novos estudos para manter tudo organizadinho e com o padrão Estudo Rosa. ✨
                     </p>
                     <div className="mt-6 flex justify-center">
                       <button 
@@ -360,7 +360,7 @@ function AdminPanel() {
     <div className="animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="mb-10 text-center">
         <h2 className="font-serif text-4xl text-pink-700">Aceitar Meds ✨</h2>
-        <p className="mt-2 text-pink-500/70 font-medium">Controle quem entra no seu consultório, Doutora Nath!</p>
+        <p className="mt-2 text-pink-500/70 font-medium">Controle quem entra no seu consultório, Doutora Naty!</p>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">

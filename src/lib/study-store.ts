@@ -28,6 +28,8 @@ export interface HistoryEntry {
   id: string;
   estudo_id: string | null;
   nome: string;
+  /** "quiz" = prova valendo (entra no ranking). "revisao" = treino dos erros. */
+  tipo?: string;
   nota: number;
   acertos: number;
   total: number;
@@ -272,6 +274,7 @@ export async function addHistory(entry: Omit<HistoryEntry, "id" | "perfil_id">) 
   const { error } = await supabase.from("historico").insert({
     estudo_id: entry.estudo_id,
     nome: entry.nome,
+    tipo: entry.tipo ?? "quiz",
     nota: entry.nota,
     acertos: entry.acertos,
     total: entry.total,
@@ -403,4 +406,40 @@ export async function setMarcaResumo(
     { onConflict: "perfil_id,estudo_id,indice" },
   );
   if (error) console.error("[marca resumo]", error.message);
+}
+
+
+// ---------- Ranking das questões ----------
+
+export interface RankingQuestoes {
+  perfil_id: string;
+  nome: string;
+  foto_url: string | null;
+  provas: number;
+  melhor: number;
+  media: number;
+}
+
+/**
+ * Ranking por melhor nota. Passe o id do estudo para ver só quem fez aquele
+ * material, ou nada para o ranking geral. Rodadas de treino ficam de fora.
+ */
+export async function getRankingQuestoes(
+  estudoId?: string | null,
+): Promise<RankingQuestoes[]> {
+  const { data, error } = await supabase.rpc("ranking_questoes", {
+    p_estudo_id: estudoId ?? null,
+  });
+  if (error) {
+    console.error("[ranking questoes]", error.message);
+    return [];
+  }
+  return (data ?? []).map((r: any) => ({
+    perfil_id: r.perfil_id,
+    nome: r.nome,
+    foto_url: r.foto_url ?? null,
+    provas: Number(r.provas),
+    melhor: Number(r.melhor),
+    media: Number(r.media),
+  }));
 }

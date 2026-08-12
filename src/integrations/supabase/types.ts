@@ -261,6 +261,7 @@ export type Database = {
           nota: number | null
           perfil_id: string | null
           respostas: Json | null
+          tipo: string
           total: number
         }
         Insert: {
@@ -272,6 +273,7 @@ export type Database = {
           nota?: number | null
           perfil_id?: string | null
           respostas?: Json | null
+          tipo?: string
           total?: number
         }
         Update: {
@@ -283,6 +285,7 @@ export type Database = {
           nota?: number | null
           perfil_id?: string | null
           respostas?: Json | null
+          tipo?: string
           total?: number
         }
         Relationships: []
@@ -465,7 +468,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      ranking_questoes: {
+        Args: { p_estudo_id?: string | null }
+        Returns: {
+          perfil_id: string
+          nome: string
+          foto_url: string | null
+          provas: number
+          melhor: number
+          media: number
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

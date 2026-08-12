@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, RotateCcw, Target, X } from "lucide-react";
+import { Check, RotateCcw, Target, Trophy, X } from "lucide-react";
 
 import {
   addHistory,
@@ -8,7 +8,9 @@ import {
   loadCurrent,
   loadProgresso,
   saveProgresso,
+  getRankingQuestoes,
   type CurrentStudy,
+  type RankingQuestoes,
 } from "@/lib/study-store";
 import { StudyPicker } from "@/components/StudyPicker";
 import { usePerfilAtivo } from "@/lib/perfis-store";
@@ -118,6 +120,7 @@ function QuestoesPage() {
       addHistory({
         estudo_id: current.id,
         nome: somenteErros ? `${current.nome} (revisão dos erros)` : current.nome,
+        tipo: somenteErros ? "revisao" : "quiz",
         nota,
         acertos,
         total,
@@ -369,7 +372,142 @@ function QuestoesPage() {
           </div>
         </div>
       )}
+
+      <RankingQuestoesSecao
+        estudoId={current.id}
+        estudoNome={current.nome}
+        recarregarEm={salvo}
+        meuId={perfil?.id ?? null}
+      />
     </div>
+  );
+}
+
+// ============ Ranking ============
+
+function RankingQuestoesSecao({
+  estudoId,
+  estudoNome,
+  recarregarEm,
+  meuId,
+}: {
+  estudoId: string;
+  estudoNome: string;
+  recarregarEm: boolean;
+  meuId: string | null;
+}) {
+  const [escopo, setEscopo] = useState<"material" | "geral">("material");
+  const [itens, setItens] = useState<RankingQuestoes[]>([]);
+  const [carregando, setCarregando] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    setCarregando(true);
+    getRankingQuestoes(escopo === "material" ? estudoId : null).then((r) => {
+      if (!alive) return;
+      setItens(r);
+      setCarregando(false);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [escopo, estudoId, recarregarEm]);
+
+  return (
+    <section className="mt-10 rounded-3xl border border-border bg-card p-6 shadow-sm">
+      <div className="mb-4 flex items-center gap-2">
+        <Trophy className="h-5 w-5 text-primary" />
+        <h2 className="font-serif text-xl">Ranking das MedGatas</h2>
+      </div>
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        {([
+          { id: "material" as const, label: "Neste material" },
+          { id: "geral" as const, label: "Geral" },
+        ]).map((o) => {
+          const ativo = o.id === escopo;
+          return (
+            <button
+              key={o.id}
+              onClick={() => setEscopo(o.id)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                ativo
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                  : "border-pink-200 bg-white text-pink-700 hover:bg-pink-50"
+              }`}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {carregando ? (
+        <p className="py-4 text-sm text-muted-foreground">Carregando…</p>
+      ) : itens.length === 0 ? (
+        <p className="py-4 text-sm text-muted-foreground">
+          {escopo === "material"
+            ? `Ninguém fez o quiz de "${estudoNome}" ainda. Seja a primeira! 💗`
+            : "Ainda não há provas feitas por aqui."}
+        </p>
+      ) : (
+        <ol className="space-y-2">
+          {itens.map((r, i) => {
+            const euMesma = r.perfil_id === meuId;
+            return (
+              <li
+                key={r.perfil_id}
+                className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 ${
+                  euMesma
+                    ? "border-primary bg-secondary/40"
+                    : "border-border bg-background"
+                }`}
+              >
+                <span
+                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-full font-serif text-sm ${
+                    i === 0
+                      ? "bg-amber-100 text-amber-700"
+                      : i === 1
+                        ? "bg-slate-100 text-slate-600"
+                        : i === 2
+                          ? "bg-orange-100 text-orange-700"
+                          : "bg-secondary text-rose-dark"
+                  }`}
+                >
+                  {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
+                </span>
+                <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-pink-100 text-xs font-bold text-pink-700">
+                  {r.foto_url ? (
+                    <img src={r.foto_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    r.nome.slice(0, 2).toUpperCase()
+                  )}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">
+                    {r.nome}
+                    {euMesma && (
+                      <span className="ml-1 text-xs text-primary">(você)</span>
+                    )}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {r.provas} prova{r.provas === 1 ? "" : "s"} • média{" "}
+                    {r.media.toFixed(1).replace(".", ",")}
+                  </p>
+                </div>
+                <span className="shrink-0 font-serif text-2xl text-rose-dark">
+                  {r.melhor.toFixed(1).replace(".", ",")}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
+      <p className="mt-4 text-[11px] text-muted-foreground">
+        Ordenado pela melhor nota. Rodadas de treino dos erros não entram aqui. 🌷
+      </p>
+    </section>
   );
 }
 
