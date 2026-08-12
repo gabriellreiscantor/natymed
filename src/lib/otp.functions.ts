@@ -84,7 +84,6 @@ export const requestOtp = createServerFn({ method: "POST" })
       .object({
         email: z.string().email(),
         password: z.string().min(1),
-        mode: z.enum(["login", "signup"]),
         nome: z.string().optional(),
         data_nascimento: z.string().optional(),
       })
@@ -94,26 +93,22 @@ export const requestOtp = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const email = data.email.toLowerCase().trim();
 
-    if (data.mode === "signup") {
-      const { error } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password: data.password,
-        email_confirm: true,
-        user_metadata: {
-          nome: data.nome ?? "Estudante",
-          data_nascimento: data.data_nascimento || null,
-        },
-      });
-      if (error) throw new Error(error.message);
-    } else {
-      // Confere a senha no servidor. Este client não persiste sessão,
-      // então nada é entregue ao navegador antes do código ser validado.
-      const check = await criarClienteAuth();
-      const { error } = await check.auth.signInWithPassword({
-        email,
-        password: data.password,
-      });
-      if (error) throw new Error(error.message);
+    // Só o cadastro passa por código: ele existe para provar que o e-mail
+    // é mesmo dela. Quem já tem conta entra direto com e-mail e senha.
+    const { error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: data.password,
+      email_confirm: true,
+      user_metadata: {
+        nome: data.nome ?? "Estudante",
+        data_nascimento: data.data_nascimento || null,
+      },
+    });
+    if (error) {
+      const msg = /already been registered|already registered|duplicate/i.test(error.message)
+        ? "Este e-mail já tem conta. É só fazer login. ✨"
+        : error.message;
+      throw new Error(msg);
     }
 
     // Anti-spam: no máximo 1 envio por minuto por e-mail.

@@ -25,27 +25,38 @@ export function PerfilGate({ children }: { children: ReactNode }) {
 
   async function handleAuth(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError(null);
 
     try {
-      if (mode === "signup" && password !== confirmPassword) {
+      if (mode === "login") {
+        // Quem já tem conta entra direto, sem código no e-mail.
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (signInError) throw signInError;
+        window.sessionStorage.removeItem("pending_otp_email");
+        window.location.reload();
+        return;
+      }
+
+      if (password !== confirmPassword) {
         throw new Error("As senhas não conferem.");
       }
 
-      // O servidor confere a senha, gera o código e envia o e-mail.
-      // Nenhuma sessão é criada no navegador antes da validação.
+      // No cadastro o código serve para confirmar que o e-mail é dela mesma.
       await triggerRequestOtp({
         data: {
-          email,
+          email: email.trim(),
           password,
-          mode,
           nome,
           data_nascimento: nascimento || undefined,
         },
       });
 
-      window.sessionStorage.setItem("pending_otp_email", email);
+      window.sessionStorage.setItem("pending_otp_email", email.trim());
       setSent(true);
     } catch (err: any) {
       console.error("Auth error:", err);
@@ -99,7 +110,9 @@ export function PerfilGate({ children }: { children: ReactNode }) {
     const savedEmail = window.sessionStorage.getItem("pending_otp_email");
     if (savedEmail && !perfil) {
       setEmail(savedEmail);
-      // A senha não fica guardada: se recarregou a página, refaz o login.
+      // Só o cadastro deixa código pendente. A senha não fica guardada,
+      // então ao recarregar ela refaz o cadastro (o e-mail já vem preenchido).
+      setMode("signup");
       setSent(false);
     }
   }, [perfil]);
@@ -119,9 +132,9 @@ export function PerfilGate({ children }: { children: ReactNode }) {
               className="h-10 w-10 object-contain"
             />
           </div>
-          <h2 className="font-serif text-3xl text-pink-700">Valide seu Acesso</h2>
+          <h2 className="font-serif text-3xl text-pink-700">Confirme seu E-mail</h2>
           <p className="mt-2 text-pink-500/70 text-sm">
-            Enviamos um código para o seu e-mail.
+            Falta só confirmar que este e-mail é seu.
           </p>
 
           <form onSubmit={handleVerifyOtp} className="mt-8 text-left">
