@@ -20,6 +20,45 @@ function comparaSeguro(a: string, b: string) {
   return timingSafeEqual(ba, bb);
 }
 
+/**
+ * Cliente de autenticacao sem sessao persistida.
+ * Precisa do mesmo ajuste de header do client gerado: as chaves novas
+ * (sb_publishable_/sb_secret_) nao sao JWT, entao o Authorization: Bearer
+ * <chave> que o supabase-js manda por padrao tem que sair.
+ */
+async function criarClienteAuth() {
+  const { createClient } = await import("@supabase/supabase-js");
+  const url = process.env["SUPABASE_URL"];
+  const key = process.env["SUPABASE_PUBLISHABLE_KEY"];
+  if (!url || !key) {
+    throw new Error(
+      "Faltam SUPABASE_URL ou SUPABASE_PUBLISHABLE_KEY no ambiente do servidor.",
+    );
+  }
+
+  const chaveNova = key.startsWith("sb_publishable_") || key.startsWith("sb_secret_");
+  const fetchAjustado: typeof fetch = (input, init) => {
+    const headers = new Headers(
+      typeof Request !== "undefined" && input instanceof Request
+        ? input.headers
+        : undefined,
+    );
+    if (init?.headers) {
+      new Headers(init.headers).forEach((v, k) => headers.set(k, v));
+    }
+    if (chaveNova && headers.get("Authorization") === `Bearer ${key}`) {
+      headers.delete("Authorization");
+    }
+    headers.set("apikey", key);
+    return fetch(input, { ...init, headers });
+  };
+
+  return createClient(url, key, {
+    global: { fetch: fetchAjustado },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
 function emailHtml(otp: string) {
   return `
     <div style="font-family: sans-serif; color: #db2777; text-align: center; padding: 40px; background-color: #fdf2f8; border-radius: 20px;">
@@ -68,12 +107,7 @@ export const requestOtp = createServerFn({ method: "POST" })
     } else {
       // Confere a senha no servidor. Este client não persiste sessão,
       // então nada é entregue ao navegador antes do código ser validado.
-      const { createClient } = await import("@supabase/supabase-js");
-      const check = createClient(
-        process.env["SUPABASE_URL"]!,
-        process.env["SUPABASE_PUBLISHABLE_KEY"]!,
-        { auth: { persistSession: false, autoRefreshToken: false } },
-      );
+      const check = await criarClienteAuth();
       const { error } = await check.auth.signInWithPassword({
         email,
         password: data.password,
@@ -191,12 +225,7 @@ export const verifyOtp = createServerFn({ method: "POST" })
     await supabaseAdmin.from("otp_codes").update({ consumido: true }).eq("id", registro.id);
 
     // Código conferido: agora sim emitimos a sessão.
-    const { createClient } = await import("@supabase/supabase-js");
-    const auth = createClient(
-      process.env["SUPABASE_URL"]!,
-      process.env["SUPABASE_PUBLISHABLE_KEY"]!,
-      { auth: { persistSession: false, autoRefreshToken: false } },
-    );
+    const auth = await criarClienteAuth();
     const { data: sessao, error } = await auth.auth.signInWithPassword({
       email,
       password: data.password,
