@@ -144,7 +144,7 @@ export async function renameStudy(id: string, nome: string) {
   emit();
 }
 
-async function fetchDonos(
+export async function fetchDonos(
   ids: string[],
 ): Promise<Map<string, { nome: string; foto_url: string | null }>> {
   const filtered = ids.filter(Boolean);

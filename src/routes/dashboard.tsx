@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { alertarBonito } from "@/components/ConfirmDialog";
+import { alertarBonito, confirmarBonito } from "@/components/ConfirmDialog";
 import { useEffect, useRef, useState } from "react";
 import { BookOpen, FileText, Loader2, Upload, Users, Check, X, Sparkles } from "lucide-react";
-import { usePerfilAtivo, listAllProfiles, acceptProfile, countPendentes } from "@/lib/perfis-store";
+import { usePerfilAtivo, listAllProfiles, acceptProfile, revokeProfile, countPendentes } from "@/lib/perfis-store";
 
 import { extractTextFromPdf, parseStudyText } from "@/lib/pdf-parser";
 import { createStudy, loadCurrent, type CurrentStudy } from "@/lib/study-store";
@@ -416,6 +416,24 @@ function ProfileRow({ profile, onAction, variant = "pending" }: { profile: any, 
     }
   }
 
+  async function handleRevoke() {
+    const ok = await confirmarBonito({
+      titulo: "Tirar do consultório?",
+      mensagem: `${profile.nome} volta para a sala de espera e perde o acesso aos materiais. Nada do que ela criou é apagado, e você pode aceitar de novo quando quiser.`,
+      confirmar: "Tirar acesso",
+    });
+    if (!ok) return;
+    setLoading(true);
+    try {
+      await revokeProfile(profile.id);
+      onAction();
+    } catch (e) {
+      alertarBonito("Ops! Não consegui tirar o acesso dela. Tente novamente! 🌸");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="group flex items-center justify-between gap-4 rounded-3xl border border-pink-50 bg-white p-4 shadow-sm transition-all hover:shadow-md hover:border-pink-200">
       <div className="flex items-center gap-3">
@@ -431,6 +449,11 @@ function ProfileRow({ profile, onAction, variant = "pending" }: { profile: any, 
         <div className="min-w-0">
           <p className="font-bold text-pink-800 truncate">{profile.nome}</p>
           <p className="text-xs text-pink-400 truncate">{profile.email}</p>
+          {profile.periodo && (
+            <span className="mt-1 inline-block rounded-full bg-pink-50 px-2 py-0.5 text-[10px] font-bold text-pink-500">
+              {profile.periodo}
+            </span>
+          )}
         </div>
       </div>
       
@@ -444,9 +467,14 @@ function ProfileRow({ profile, onAction, variant = "pending" }: { profile: any, 
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-5 w-5" />}
         </button>
       ) : (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pink-50 text-pink-300">
-          <Sparkles className="h-4 w-4" />
-        </div>
+        <button
+          onClick={handleRevoke}
+          disabled={loading}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pink-50 text-pink-300 transition-all hover:bg-rose-100 hover:text-rose-500 active:scale-90 disabled:opacity-50"
+          title="Tirar do consultório"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-5 w-5" />}
+        </button>
       )}
     </div>
   );

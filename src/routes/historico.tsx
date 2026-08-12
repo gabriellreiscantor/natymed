@@ -14,10 +14,12 @@ import { Check, ChevronDown, Trash2, X } from "lucide-react";
 
 import {
   clearHistory,
+  fetchDonos,
   loadEstudoQuestoes,
   loadHistory,
   type HistoryEntry,
 } from "@/lib/study-store";
+import { usePerfilAtivo } from "@/lib/perfis-store";
 
 
 export const Route = createFileRoute("/historico")({
@@ -30,17 +32,29 @@ export const Route = createFileRoute("/historico")({
 function HistoricoPage() {
   const [historia, setHistoria] = useState<HistoryEntry[]>([]);
   const [scope, setScope] = useState<"meu" | "todos">("meu");
+  const [donos, setDonos] = useState<Map<string, { nome: string; foto_url: string | null }>>(
+    new Map(),
+  );
+  const { perfil } = usePerfilAtivo();
+  // Só a Naty enxerga o histórico da turma — o banco também exige isso.
+  const podeVerTodas = !!perfil?.is_admin;
+  const vendoTodas = podeVerTodas && scope === "todos";
 
   useEffect(() => {
     const refresh = () => {
-      loadHistory(scope).then(setHistoria);
+      loadHistory(podeVerTodas ? scope : "meu").then(async (h) => {
+        setHistoria(h);
+        if (podeVerTodas && scope === "todos") {
+          setDonos(await fetchDonos(h.map((e) => e.perfil_id ?? "")));
+        }
+      });
     };
     refresh();
     window.addEventListener("estudo:atualizado", refresh);
     return () => window.removeEventListener("estudo:atualizado", refresh);
-  }, [scope]);
+  }, [scope, podeVerTodas]);
 
-  const scopeToggle = (
+  const scopeToggle = podeVerTodas ? (
     <div className="mb-6 flex gap-1 rounded-full border border-border bg-card p-1 text-xs">
       <button
         onClick={() => setScope("meu")}
@@ -63,7 +77,7 @@ function HistoricoPage() {
         Todas as amigas
       </button>
     </div>
-  );
+  ) : null;
 
   if (historia.length === 0) {
     return (
@@ -107,9 +121,12 @@ function HistoricoPage() {
         <div>
           <h1 className="text-4xl">Histórico</h1>
           <p className="mt-2 text-muted-foreground">
-            Sua evolução ao longo do tempo. Cada prova conta. 🌷
+            {vendoTodas
+              ? "Como as meninas estão indo nos quizzes. 🌷"
+              : "Sua evolução ao longo do tempo. Cada prova conta. 🌷"}
           </p>
         </div>
+        {!vendoTodas && (
         <button
           onClick={async () => {
             if (await confirmarBonito({
@@ -123,10 +140,11 @@ function HistoricoPage() {
           <Trash2 className="h-3.5 w-3.5" />
           Limpar
         </button>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Provas feitas" value={String(historia.length)} />
+        <StatCard label={vendoTodas ? "Provas da turma" : "Provas feitas"} value={String(historia.length)} />
         <StatCard
           label="Nota média"
           value={media.toFixed(1).replace(".", ",")}
@@ -140,7 +158,7 @@ function HistoricoPage() {
       </div>
 
       <div className="mt-6 rounded-3xl border border-border bg-card p-6 shadow-sm">
-        <h2 className="text-xl">Sua evolução</h2>
+        <h2 className="text-xl">{vendoTodas ? "Evolução da turma" : "Sua evolução"}</h2>
         <div className="mt-4 h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
@@ -187,14 +205,18 @@ function HistoricoPage() {
 
       <div className="mt-6 space-y-3">
         {historia.map((h) => (
-          <HistoryItem key={h.id} entry={h} />
+          <HistoryItem
+            key={h.id}
+            entry={h}
+            dona={vendoTodas ? (donos.get(h.perfil_id ?? "")?.nome ?? null) : null}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function HistoryItem({ entry }: { entry: HistoryEntry }) {
+function HistoryItem({ entry, dona }: { entry: HistoryEntry; dona?: string | null }) {
   const [aberto, setAberto] = useState(false);
   const [questoes, setQuestoes] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -220,6 +242,9 @@ function HistoryItem({ entry }: { entry: HistoryEntry }) {
       >
         <div className="min-w-0">
           <p className="truncate font-medium text-foreground">{entry.nome}</p>
+          {dona && (
+            <p className="truncate text-xs font-bold text-pink-500">{dona}</p>
+          )}
           <p className="text-xs text-muted-foreground">
             {new Date(entry.data).toLocaleString("pt-BR", {
               day: "2-digit",

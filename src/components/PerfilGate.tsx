@@ -53,6 +53,7 @@ export function PerfilGate({ children }: { children: ReactNode }) {
           password,
           nome,
           data_nascimento: nascimento || undefined,
+          periodo: periodo.trim() || undefined,
         },
       });
 

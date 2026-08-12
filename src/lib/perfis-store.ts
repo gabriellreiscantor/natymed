@@ -9,6 +9,7 @@ export interface Profile {
   is_accepted: boolean;
   foto_url: string | null;
   data_nascimento: string | null;
+  periodo: string | null;
   criado_at: string;
 }
 
@@ -45,6 +46,7 @@ export async function getProfile(): Promise<Profile | null> {
     ...data,
     is_admin: !!data.is_admin,
     is_accepted: !!data.is_accepted,
+    periodo: (data as any).periodo ?? null,
     criado_at: data.criado_at || new Date().toISOString()
   } as Profile;
 }
@@ -63,6 +65,7 @@ export async function listAllProfiles(): Promise<Profile[]> {
     ...d,
     is_admin: !!d.is_admin,
     is_accepted: !!d.is_accepted,
+    periodo: (d as any).periodo ?? null,
     criado_at: d.criado_at || new Date().toISOString()
   })) as Profile[];
 }
@@ -81,6 +84,19 @@ export async function acceptProfile(id: string) {
  * A sala de espera usa isso para descobrir sozinha que a Naty já aceitou.
  */
 export function refreshPerfil() {
+  emit();
+}
+
+/**
+ * Tira o acesso de quem já tinha sido aceita: ela volta para a sala de espera
+ * sem perder nada do que já criou. Só admin consegue (o banco também exige).
+ */
+export async function revokeProfile(id: string) {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ is_accepted: false })
+    .eq("id", id);
+  if (error) throw error;
   emit();
 }
 

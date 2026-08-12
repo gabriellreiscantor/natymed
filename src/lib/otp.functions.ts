@@ -86,6 +86,7 @@ export const requestOtp = createServerFn({ method: "POST" })
         password: z.string().min(1),
         nome: z.string().optional(),
         data_nascimento: z.string().optional(),
+        periodo: z.string().optional(),
       })
       .parse(data),
   )
@@ -102,6 +103,7 @@ export const requestOtp = createServerFn({ method: "POST" })
       user_metadata: {
         nome: data.nome ?? "Estudante",
         data_nascimento: data.data_nascimento || null,
+        periodo: data.periodo || null,
       },
     });
     if (error) {
