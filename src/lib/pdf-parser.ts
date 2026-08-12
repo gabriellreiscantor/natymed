@@ -135,6 +135,10 @@ export function parseStudyText(raw: string): ParsedPdf {
   // Split by ### markers
   const parts = text.split(/(?=###\s*(?:RESUMO|QUESTAO|QUESTÃO))/i);
 
+  // Questoes que ficaram sem gabarito no proprio bloco (comum quando o
+  // gabarito vem numerado numa lista no fim do PDF, em fonte branca).
+  const semGabarito: { questao: Questao; ordem: number }[] = [];
+
   for (const part of parts) {
     const trimmed = part.trim();
     if (!trimmed) continue;
@@ -153,16 +157,74 @@ export function parseStudyText(raw: string): ParsedPdf {
     } else if (questaoMatch) {
       const body = trimmed.replace(/^###\s*(?:QUESTAO|QUESTÃO)\s*:?/i, "").trim();
       const questao = parseQuestao(body);
-      if (questao) questoes.push(questao);
+      if (questao) {
+        questoes.push(questao);
+      } else {
+        // Tenta de novo sem exigir gabarito: pode estar no fim do arquivo.
+        const parcial = parseQuestao(body, { exigirGabarito: false });
+        if (parcial) {
+          questoes.push(parcial);
+          semGabarito.push({ questao: parcial, ordem: questoes.length - 1 });
+        }
+      }
     }
   }
 
-  return { resumos, questoes };
+  if (semGabarito.length) {
+    aplicarGabaritosDoFim(text, semGabarito);
+  }
+
+  // Descarta o que continuou sem gabarito — sem resposta nao da pra corrigir.
+  return { resumos, questoes: questoes.filter((q) => q.gabarito) };
 }
 
-function parseQuestao(body: string): Questao | null {
+/**
+ * Procura gabaritos soltos no documento (ex: "1. A  2. C  3. B" ou uma
+ * sequencia de "GABARITO: A") e casa com as questoes que ficaram sem resposta,
+ * na ordem em que aparecem.
+ */
+function aplicarGabaritosDoFim(
+  texto: string,
+  pendentes: { questao: Questao; ordem: number }[],
+) {
+  // Formato numerado: "12. B" ou "12 - B" ou "12) B"
+  const numerados = [...texto.matchAll(/(^|\n)\s*(\d{1,3})\s*[).\-–]\s*([A-E])\b/gi)]
+    .map((m) => ({ numero: Number(m[2]), letra: m[3].toUpperCase() }));
+
+  if (numerados.length) {
+    const porNumero = new Map<number, string>();
+    for (const n of numerados) if (!porNumero.has(n.numero)) porNumero.set(n.numero, n.letra);
+    let casou = 0;
+    for (const p of pendentes) {
+      const letra = porNumero.get(p.ordem + 1);
+      if (letra) {
+        p.questao.gabarito = letra;
+        casou++;
+      }
+    }
+    if (casou) return;
+  }
+
+  // Formato repetido: varios "GABARITO: X" agrupados no fim.
+  const soltos = [...texto.matchAll(/GABARITO\s*:?\s*([A-E])\b/gi)].map((m) =>
+    m[1].toUpperCase(),
+  );
+  if (soltos.length >= pendentes.length) {
+    // usa os ultimos, que sao os do bloco final
+    const usar = soltos.slice(soltos.length - pendentes.length);
+    pendentes.forEach((p, i) => {
+      p.questao.gabarito = usar[i];
+    });
+  }
+}
+
+function parseQuestao(
+  body: string,
+  opcoes: { exigirGabarito?: boolean } = {},
+): Questao | null {
+  const { exigirGabarito = true } = opcoes;
   // Find alternatives A) B) C) D) E)
-  const altRegex = /(^|\n)\s*([A-E])[)\.\-]\s*/g;
+  const altRegex = /(^|\n)\s*([A-E])\s*[)\.\-–—:]\s+/g;
   const matches: { letra: string; index: number; matchLen: number }[] = [];
   let m: RegExpExecArray | null;
   while ((m = altRegex.exec(body)) !== null) {
@@ -178,16 +240,18 @@ function parseQuestao(body: string): Questao | null {
 
   // Find gabarito/explicacao end boundary
   const gabRegex = /GABARITO\s*:?\s*([A-E])/i;
-  const explRegex = /EXPLICA(?:C|Ç)AO\s*:?\s*([\s\S]*?)(?=(?:\n\s*###)|$)/i;
+  const explRegex =
+    /EXPLICA(?:C|Ç)(?:A|Ã)O\s*:?\s*([\s\S]*?)(?=(?:\n\s*###)|(?:\n\s*GABARITO)|$)/i;
 
   const gabMatch = body.match(gabRegex);
   const explMatch = body.match(explRegex);
 
-  const endOfAlts = gabMatch
-    ? body.indexOf(gabMatch[0])
-    : explMatch
-      ? body.indexOf(explMatch[0])
-      : body.length;
+  // As alternativas terminam no primeiro marcador que aparecer — GABARITO ou
+  // EXPLICACAO — senao a ultima alternativa engole o texto seguinte.
+  const posGab = gabMatch ? body.indexOf(gabMatch[0]) : -1;
+  const posExpl = explMatch ? body.indexOf(explMatch[0]) : -1;
+  const candidatos = [posGab, posExpl].filter((p) => p >= 0);
+  const endOfAlts = candidatos.length ? Math.min(...candidatos) : body.length;
 
   const alternativas: { letra: string; texto: string }[] = [];
   for (let i = 0; i < matches.length; i++) {
@@ -200,7 +264,8 @@ function parseQuestao(body: string): Questao | null {
   const gabarito = gabMatch ? gabMatch[1].toUpperCase() : "";
   const explicacao = explMatch ? explMatch[1].trim() : "";
 
-  if (!enunciado || alternativas.length < 2 || !gabarito) return null;
+  if (!enunciado || alternativas.length < 2) return null;
+  if (exigirGabarito && !gabarito) return null;
 
   return { enunciado, alternativas, gabarito, explicacao };
 }
