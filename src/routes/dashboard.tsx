@@ -98,17 +98,23 @@ function Index() {
             <div className="absolute inset-0 animate-pulse rounded-full bg-pink-200/50 blur-2xl" />
             <div className="relative h-full w-full overflow-hidden rounded-full border-8 border-white bg-pink-100 shadow-2xl ring-1 ring-pink-100 transition-transform duration-500 group-hover:scale-105 group-active:scale-95">
               {perfil?.foto_url ? (
-                <img src={perfil.foto_url} alt={perfil.nome} className="h-full w-full object-cover" />
+                <>
+                  <img src={perfil.foto_url} alt={perfil.nome} className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-pink-500/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <span className="rounded-full bg-white/90 px-3 py-1.5 text-xs font-bold text-pink-600 shadow-sm">
+                      Meu Perfil
+                    </span>
+                  </div>
+                </>
               ) : (
-                <div className="grid h-full w-full place-items-center text-5xl font-serif text-pink-400">
-                  🌸
+                // Sem foto: o convite fica sempre visível dentro da bolinha,
+                // no lugar da florzinha (que não dizia o que fazer ali).
+                <div className="grid h-full w-full place-items-center px-2">
+                  <span className="rounded-full bg-white/90 px-3 py-1.5 text-center text-xs font-bold leading-tight text-pink-600 shadow-sm">
+                    Adicione sua fotinha
+                  </span>
                 </div>
               )}
-              <div className="absolute inset-0 flex items-center justify-center bg-pink-500/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                <span className="rounded-full bg-white/90 px-3 py-1.5 text-xs font-bold text-pink-600 shadow-sm">
-                  {perfil?.foto_url ? "Meu Perfil" : "Adicione sua fotinha"}
-                </span>
-              </div>
             </div>
             <div className="absolute -bottom-2 -right-2 rounded-full bg-white p-3 shadow-lg animate-bounce text-xl">
               ✨
