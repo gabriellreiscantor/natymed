@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { alertarBonito, confirmarBonito } from "@/components/ConfirmDialog";
 import { useEffect, useRef, useState } from "react";
 import { BookOpen, FileText, Loader2, Upload, Users, Check, X, Sparkles } from "lucide-react";
-import { usePerfilAtivo, listAllProfiles, acceptProfile, revokeProfile, countPendentes } from "@/lib/perfis-store";
+import { usePerfilAtivo, listAllProfiles, acceptProfile, revokeProfile, countPendentes, assinarPerfisRealtime } from "@/lib/perfis-store";
 
 import { extractTextFromPdf, parseStudyText } from "@/lib/pdf-parser";
 import { createStudy, loadCurrent, type CurrentStudy } from "@/lib/study-store";
@@ -44,10 +44,14 @@ function Index() {
       });
     };
     contar();
-    const id = window.setInterval(contar, 30_000);
+    // Tempo real: a bolinha muda no instante em que alguém se cadastra.
+    // O intervalo fica como rede de segurança se a conexão cair.
+    const offRealtime = assinarPerfisRealtime(contar);
+    const id = window.setInterval(contar, 60_000);
     window.addEventListener("perfil:atualizado", contar);
     return () => {
       alive = false;
+      offRealtime();
       window.clearInterval(id);
       window.removeEventListener("perfil:atualizado", contar);
     };
@@ -344,6 +348,9 @@ function AdminPanel() {
 
   useEffect(() => {
     load();
+    // A lista se atualiza sozinha quando alguém se cadastra ou é aceita,
+    // sem a Naty precisar sair e voltar na aba.
+    return assinarPerfisRealtime(load);
   }, []);
 
   const pendentes = profiles.filter(p => !p.is_accepted && !p.is_admin);

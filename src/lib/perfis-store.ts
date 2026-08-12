@@ -100,6 +100,29 @@ export async function revokeProfile(id: string) {
   emit();
 }
 
+/**
+ * Escuta mudanças na tabela de perfis em tempo real.
+ * É o que faz a fila da Naty e a sala de espera reagirem na hora: quando ela
+ * aceita alguém, a aluna entra sem esperar o próximo ciclo de verificação.
+ * O RLS continua valendo — cada uma só recebe evento do que já podia ler.
+ */
+export function assinarPerfisRealtime(cb: () => void) {
+  if (typeof window === "undefined") return () => {};
+
+  const canal = supabase
+    .channel("perfis-tempo-real")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "profiles" },
+      () => cb(),
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(canal);
+  };
+}
+
 /** Quantas alunas estão na fila esperando aprovação. Só admin enxerga. */
 export async function countPendentes(): Promise<number> {
   const { count, error } = await supabase
@@ -141,11 +164,14 @@ export function usePerfilAtivo() {
     });
 
     const off = onPerfilChange(load);
+    // Aceitou/removeu do outro lado? A tela se atualiza sozinha, na hora.
+    const offRealtime = assinarPerfisRealtime(load);
 
     return () => {
       alive = false;
       subscription.unsubscribe();
       off();
+      offRealtime();
     };
   }, []);
 

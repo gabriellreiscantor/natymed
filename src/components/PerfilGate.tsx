@@ -118,12 +118,12 @@ export function PerfilGate({ children }: { children: ReactNode }) {
     }
   }, [perfil]);
 
-  // Na sala de espera a tela precisa se virar sozinha: sem isso a aluna ficava
-  // olhando o "processando" para sempre, mesmo depois da Naty já ter aceitado.
+  // A sala de espera reage em tempo real (o perfil é assinado no store).
+  // O intervalo abaixo fica só como rede de segurança, caso o socket caia.
   const naFila = !!perfil && !perfil.is_accepted && !perfil.is_admin;
   useEffect(() => {
     if (!naFila) return;
-    const id = window.setInterval(refreshPerfil, 15_000);
+    const id = window.setInterval(refreshPerfil, 60_000);
     const aoVoltar = () => {
       if (document.visibilityState === "visible") refreshPerfil();
     };
