@@ -76,6 +76,25 @@ export async function acceptProfile(id: string) {
   emit();
 }
 
+/**
+ * Força uma releitura do perfil em todas as telas abertas.
+ * A sala de espera usa isso para descobrir sozinha que a Naty já aceitou.
+ */
+export function refreshPerfil() {
+  emit();
+}
+
+/** Quantas alunas estão na fila esperando aprovação. Só admin enxerga. */
+export async function countPendentes(): Promise<number> {
+  const { count, error } = await supabase
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("is_accepted", false)
+    .eq("is_admin", false);
+  if (error) return 0;
+  return count ?? 0;
+}
+
 export async function updateProfile(id: string, patch: Partial<Profile>) {
   const { error } = await supabase.from("profiles").update(patch).eq("id", id);
   if (error) throw error;

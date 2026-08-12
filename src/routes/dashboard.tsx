@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { alertarBonito } from "@/components/ConfirmDialog";
 import { useEffect, useRef, useState } from "react";
 import { BookOpen, FileText, Loader2, Upload, Users, Check, X, Sparkles } from "lucide-react";
-import { usePerfilAtivo, listAllProfiles, acceptProfile } from "@/lib/perfis-store";
+import { usePerfilAtivo, listAllProfiles, acceptProfile, countPendentes } from "@/lib/perfis-store";
 
 import { extractTextFromPdf, parseStudyText } from "@/lib/pdf-parser";
 import { createStudy, loadCurrent, type CurrentStudy } from "@/lib/study-store";
@@ -32,6 +32,26 @@ function Index() {
   const [error, setError] = useState<string | null>(null);
   const [current, setCurrent] = useState<CurrentStudy | null>(null);
   const [tab, setTab] = useState<"estudo" | "admin">("estudo");
+  const [pendentes, setPendentes] = useState(0);
+
+  // Sem isso a Naty só descobria que tem alguém na fila se abrisse a aba por acaso.
+  useEffect(() => {
+    if (!perfil?.is_admin) return;
+    let alive = true;
+    const contar = () => {
+      countPendentes().then((n) => {
+        if (alive) setPendentes(n);
+      });
+    };
+    contar();
+    const id = window.setInterval(contar, 30_000);
+    window.addEventListener("perfil:atualizado", contar);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+      window.removeEventListener("perfil:atualizado", contar);
+    };
+  }, [perfil?.is_admin]);
 
   useEffect(() => {
     const refresh = () => {
@@ -139,12 +159,17 @@ function Index() {
               </button>
               <button
                 onClick={() => setTab("admin")}
-                className={`flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold transition-all ${
+                className={`relative flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold transition-all ${
                   tab === "admin" ? "bg-white text-pink-600 shadow-md" : "text-pink-400 hover:text-pink-500"
                 }`}
               >
                 <Users className="h-4 w-4" />
                 Aceitar Meds
+                {pendentes > 0 && (
+                  <span className="grid h-5 min-w-5 place-items-center rounded-full bg-pink-500 px-1.5 text-[11px] font-bold text-white shadow-sm">
+                    {pendentes}
+                  </span>
+                )}
               </button>
             </div>
           )}

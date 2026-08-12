@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { LogOut, Loader2, Sparkles, Send, Eye, EyeOff } from "lucide-react";
-import { usePerfilAtivo } from "@/lib/perfis-store";
+import { usePerfilAtivo, refreshPerfil } from "@/lib/perfis-store";
 import { supabase } from "@/integrations/supabase/client";
 import { requestOtp, verifyOtp } from "@/lib/otp.functions";
 import { useServerFn } from "@tanstack/react-start";
@@ -117,6 +117,22 @@ export function PerfilGate({ children }: { children: ReactNode }) {
     }
   }, [perfil]);
 
+  // Na sala de espera a tela precisa se virar sozinha: sem isso a aluna ficava
+  // olhando o "processando" para sempre, mesmo depois da Naty já ter aceitado.
+  const naFila = !!perfil && !perfil.is_accepted && !perfil.is_admin;
+  useEffect(() => {
+    if (!naFila) return;
+    const id = window.setInterval(refreshPerfil, 15_000);
+    const aoVoltar = () => {
+      if (document.visibilityState === "visible") refreshPerfil();
+    };
+    document.addEventListener("visibilitychange", aoVoltar);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", aoVoltar);
+    };
+  }, [naFila]);
+
   if (!carregado) return null;
 
   // Se o código OTP foi enviado mas ainda não foi validado, mostramos a tela de OTP
@@ -209,15 +225,25 @@ export function PerfilGate({ children }: { children: ReactNode }) {
               Oie! Seu cadastro foi recebido com sucesso. <br/>
               Agora é só aguardar a <strong className="text-pink-600">Doutora Naty</strong> te aceitar no consultório.
             </p>
+            <p className="mt-3 text-xs text-pink-400 leading-relaxed">
+              Pode deixar esta página aberta: assim que ela aceitar, você entra
+              automaticamente. 💗
+            </p>
             <div className="mt-8 flex justify-center">
               <div className="flex items-center gap-2 rounded-full bg-pink-50 px-4 py-2 text-xs font-medium text-pink-500 animate-pulse">
                 <Sparkles className="h-3 w-3" />
-                Processando seu acesso...
+                Verificando seu acesso...
               </div>
             </div>
             <button
+              onClick={refreshPerfil}
+              className="mt-6 rounded-full border border-pink-200 bg-white px-5 py-2 text-xs font-bold text-pink-600 shadow-sm transition-all hover:bg-pink-50 active:scale-95"
+            >
+              Verificar agora
+            </button>
+            <button
               onClick={logoutGlobal}
-              className="mt-8 text-sm text-pink-400 hover:text-pink-600 underline underline-offset-4"
+              className="mt-6 block w-full text-sm text-pink-400 hover:text-pink-600 underline underline-offset-4"
             >
               Sair da conta
             </button>

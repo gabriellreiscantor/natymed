@@ -1,7 +1,7 @@
 import type { ParsedPdf } from "./pdf-parser";
 import type { Json } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
-import { getPerfilAtivoId } from "./perfis-store";
+import { getPerfilAtivoId, getProfile } from "./perfis-store";
 
 const CURRENT_ID_KEY = "estudo:atual_id";
 const EVENT = "estudo:atualizado";
@@ -49,7 +49,12 @@ export async function createStudy(
   nome: string,
   parsed: ParsedPdf,
 ): Promise<CurrentStudy> {
-  const perfilId = await getPerfilAtivoId();
+  const perfil = await getProfile();
+  const perfilId = perfil?.id ?? null;
+  // A Naty (admin) sobe material para o grupo estudar: já nasce compartilhado,
+  // senão ela precisaria liberar cada estudo na mão e as amigas não veriam nada.
+  // Material de aluna continua privado por padrão.
+  const compartilhado = !!perfil?.is_admin;
   const { data, error } = await supabase
     .from("estudos")
     .insert({
@@ -57,7 +62,7 @@ export async function createStudy(
       resumos: parsed.resumos as unknown as Json,
       questoes: parsed.questoes as unknown as Json,
       perfil_id: perfilId,
-      compartilhado: false,
+      compartilhado,
     })
     .select("*")
     .single();
