@@ -204,10 +204,16 @@ body {
 }
 
 /* Zoom travado no celular: o meta viewport cobre o pinça, e o touch-action
-   abaixo mata o zoom de toque duplo, que o viewport sozinho não impede. */
+   abaixo mata o zoom de toque duplo, que o viewport sozinho não impede.
+   O :not() preserva quem define o próprio gesto (o arrastar do flashcard),
+   senão a regra global brigava com o arraste do cartão. */
 @media (max-width: 640px) {
   html {
     touch-action: pan-x pan-y;
+  }
+  .touch-none,
+  .touch-none * {
+    touch-action: none;
   }
 }
 

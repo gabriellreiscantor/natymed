@@ -867,14 +867,21 @@ function SwipeCard({
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
   const [exiting, setExiting] = useState<Resultado | null>(null);
   const startRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  // O estado do React pode estar um quadro atrasado quando o dedo levanta:
+  // no celular o "pointerup" chega junto com o último "pointermove" e a conta
+  // saía com a posição anterior, engolindo o gesto. A ref é sempre atual.
+  const dragRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const surfaceRef = useRef<HTMLDivElement>(null);
 
   const threshold = 90;
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (exiting) return;
-    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+    try {
+      (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+    } catch {}
     startRef.current = { x: e.clientX, y: e.clientY, moved: false };
+    dragRef.current = { x: 0, y: 0 };
     setDrag({ x: 0, y: 0 });
   };
   const onPointerMove = (e: React.PointerEvent) => {
@@ -882,6 +889,7 @@ function SwipeCard({
     const dx = e.clientX - startRef.current.x;
     const dy = e.clientY - startRef.current.y;
     if (Math.abs(dx) > 5 || Math.abs(dy) > 5) startRef.current.moved = true;
+    dragRef.current = { x: dx, y: dy };
     setDrag({ x: dx, y: dy });
   };
   const onPointerUp = (e: React.PointerEvent) => {
@@ -891,8 +899,7 @@ function SwipeCard({
     try {
       (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
     } catch {}
-    if (!drag) return;
-    const { x, y } = drag;
+    const { x, y } = dragRef.current;
     const absX = Math.abs(x);
     const absY = Math.abs(y);
 
@@ -936,7 +943,7 @@ function SwipeCard({
   const hintDuvida = Math.min(1, Math.max(0, -y / threshold));
 
   return (
-    <div className="relative mx-auto h-[380px] w-full max-w-md select-none sm:h-[420px]">
+    <div className="relative mx-auto h-[440px] w-full max-w-md select-none sm:h-[460px]">
       <div
         ref={surfaceRef}
         className="absolute inset-0 touch-none"
@@ -944,6 +951,14 @@ function SwipeCard({
           transform,
           transition: drag && !exiting ? "none" : "transform 250ms ease-out",
           perspective: "1200px",
+          // touchAction explícito: a regra global que trava o zoom mexe no
+          // html e não pode roubar o arraste daqui.
+          touchAction: "none",
+          // Sem isso o iPhone abre "salvar imagem" no toque longo e o
+          // arraste morre no meio.
+          WebkitTouchCallout: "none",
+          WebkitUserSelect: "none",
+          userSelect: "none",
         }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -1001,7 +1016,7 @@ function CardFace({
 }) {
   return (
     <div
-      className="absolute inset-0 flex flex-col items-center justify-center overflow-auto rounded-3xl border border-primary/30 bg-card p-6 text-center shadow-lg"
+      className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden rounded-3xl border border-primary/30 bg-card p-5 text-center shadow-lg sm:p-6"
       style={{
         backfaceVisibility: "hidden",
         WebkitBackfaceVisibility: "hidden",
@@ -1009,6 +1024,9 @@ function CardFace({
         background: back
           ? "linear-gradient(160deg, var(--rose-light) 0%, var(--card) 60%)"
           : "linear-gradient(160deg, var(--card) 0%, color-mix(in oklab, var(--rose-light) 55%, white) 100%)",
+        // overflow-hidden de propósito: com "auto" a face virava uma área de
+        // rolagem e engolia o arrastar pra cima (dúvida) no celular.
+        touchAction: "none",
       }}
     >
       <div className="mb-3 text-xs uppercase tracking-[0.2em] text-rose-dark">
@@ -1016,17 +1034,20 @@ function CardFace({
       </div>
       {imagem && (
         // A imagem vai em cima e a pergunta escrita logo abaixo dela.
-        // max-h em vh para o texto nunca ficar espremido em tela pequena.
+        // min-h-0 deixa a imagem encolher quando o texto é longo, em vez de
+        // empurrar a frase para fora do cartão.
         <img
           src={imagem}
           alt=""
           draggable={false}
-          className="mb-3 max-h-[38vh] w-full rounded-2xl object-contain"
+          onDragStart={(e) => e.preventDefault()}
+          className="mb-3 min-h-0 w-full flex-shrink rounded-2xl object-contain"
+          style={{ maxHeight: "45%", pointerEvents: "none" }}
         />
       )}
       <p
-        className={`max-h-full whitespace-pre-wrap font-medium leading-relaxed text-foreground ${
-          imagem ? "text-base sm:text-lg" : "text-lg sm:text-xl"
+        className={`min-h-0 overflow-hidden whitespace-pre-wrap font-medium leading-relaxed text-foreground ${
+          imagem ? "text-sm sm:text-base" : "text-base sm:text-xl"
         }`}
       >
         {text}
