@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, FolderPlus, Loader2, Pencil, Trash2 } from "luc
 import { alertarBonito, confirmarBonito } from "@/components/ConfirmDialog";
 import {
   CORES_MODULO,
+  CORES_MODULO_NOMEADAS,
   createModulo,
   deleteModulo,
   listModulos,
@@ -72,7 +73,7 @@ export function GerenciarModulos({ secao }: { secao: Secao }) {
       await createModulo(n, cor, secao);
       setNome("");
       // Próxima cor da paleta, para os módulos não saírem todos iguais.
-      const i = CORES_MODULO.indexOf(cor as (typeof CORES_MODULO)[number]);
+      const i = CORES_MODULO.indexOf(cor);
       setCor(CORES_MODULO[(i + 1) % CORES_MODULO.length]);
     } catch (err) {
       alertarBonito(
@@ -135,16 +136,17 @@ export function GerenciarModulos({ secao }: { secao: Secao }) {
           <span className="text-[10px] font-bold uppercase tracking-widest text-pink-400">
             Cor
           </span>
-          {CORES_MODULO.map((c) => (
+          {CORES_MODULO_NOMEADAS.map((c) => (
             <button
-              key={c}
+              key={c.cor}
               type="button"
-              onClick={() => setCor(c)}
-              aria-label={`Cor ${c}`}
-              className={`h-6 w-6 rounded-full transition-transform ${
-                cor === c ? "scale-110 ring-2 ring-pink-400 ring-offset-2" : ""
+              onClick={() => setCor(c.cor)}
+              title={c.nome}
+              aria-label={c.nome}
+              className={`h-7 w-7 rounded-full transition-transform active:scale-90 ${
+                cor === c.cor ? "scale-110 ring-2 ring-pink-400 ring-offset-2" : ""
               }`}
-              style={{ backgroundColor: c }}
+              style={{ backgroundColor: c.cor }}
             />
           ))}
         </div>
@@ -189,13 +191,18 @@ export function GerenciarModulos({ secao }: { secao: Secao }) {
               )}
 
               <div className="flex shrink-0 items-center gap-1">
-                {CORES_MODULO.slice(0, 4).map((c) => (
+                {CORES_MODULO_NOMEADAS.map((c) => (
                   <button
-                    key={c}
-                    onClick={() => updateModulo(m.id, { cor: c })}
-                    aria-label={`Mudar para ${c}`}
-                    className="h-4 w-4 rounded-full opacity-40 transition-opacity hover:opacity-100"
-                    style={{ backgroundColor: c }}
+                    key={c.cor}
+                    onClick={() => updateModulo(m.id, { cor: c.cor })}
+                    title={c.nome}
+                    aria-label={`Mudar para ${c.nome}`}
+                    className={`h-5 w-5 rounded-full transition-all active:scale-90 ${
+                      m.cor === c.cor
+                        ? "ring-2 ring-pink-400 ring-offset-1"
+                        : "opacity-50 hover:opacity-100"
+                    }`}
+                    style={{ backgroundColor: c.cor }}
                   />
                 ))}
                 <button

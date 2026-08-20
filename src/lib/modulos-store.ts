@@ -17,16 +17,22 @@ export interface Modulo {
 }
 
 /** Paleta fixa: mantém a identidade rosa do site e evita cor ilegível. */
-export const CORES_MODULO = [
-  "#EC7FA9",
-  "#F59EB5",
-  "#C084FC",
-  "#60A5FA",
-  "#34D399",
-  "#FBBF24",
-  "#FB7185",
-  "#94A3B8",
+/**
+ * Paleta fixa com nome, estilo Finder: a pessoa escolhe "Verde", não um
+ * código hexadecimal. Nome também serve de rótulo acessível nos botões.
+ */
+export const CORES_MODULO_NOMEADAS = [
+  { nome: "Rosa", cor: "#EC7FA9" },
+  { nome: "Vermelho", cor: "#FB7185" },
+  { nome: "Laranja", cor: "#FB923C" },
+  { nome: "Amarelo", cor: "#FBBF24" },
+  { nome: "Verde", cor: "#34D399" },
+  { nome: "Azul", cor: "#60A5FA" },
+  { nome: "Roxo", cor: "#C084FC" },
+  { nome: "Cinza", cor: "#94A3B8" },
 ] as const;
+
+export const CORES_MODULO: string[] = CORES_MODULO_NOMEADAS.map((c) => c.cor);
 
 function emit() {
   if (typeof window !== "undefined") {

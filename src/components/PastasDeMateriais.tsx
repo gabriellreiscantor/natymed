@@ -6,6 +6,7 @@ import {
   FolderPlus,
   Globe,
   Lock,
+  Palette,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -15,6 +16,7 @@ import { promptBonito } from "@/components/PromptDialog";
 import { usePerfilAtivo } from "@/lib/perfis-store";
 import {
   CORES_MODULO,
+  CORES_MODULO_NOMEADAS,
   createModulo,
   deleteModulo,
   listModulos,
@@ -51,6 +53,8 @@ export function PastasDeMateriais({
 }) {
   const { perfil } = usePerfilAtivo();
   const ehAdmin = !!perfil?.is_admin;
+  // Nesta tela (materiais) só a Naty organiza — é ela quem publica os PDFs.
+  const podeOrganizar = ehAdmin;
 
   const [modulos, setModulos] = useState<Modulo[]>([]);
   const [meus, setMeus] = useState<StudyListItem[]>([]);
@@ -89,6 +93,9 @@ export function PastasDeMateriais({
   const soltos = todos.filter((s) => !pastaDe(s));
   const dentro = dentroDe ? todos.filter((s) => pastaDe(s) === dentroDe) : [];
   const pastaAberta = modulos.find((m) => m.id === dentroDe) ?? null;
+
+  // Qual pasta está com o seletor de cor aberto.
+  const [corAberta, setCorAberta] = useState<string | null>(null);
 
   async function criarPasta(e: React.FormEvent) {
     e.preventDefault();
@@ -238,8 +245,21 @@ export function PastasDeMateriais({
                   </span>
                 </button>
 
-                {ehAdmin && (
-                  <div className="absolute right-1 top-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                {podeOrganizar && (
+                  // No celular não existe "passar o mouse": os botões ficam
+                  // sempre visíveis em tela pequena e só se escondem no
+                  // computador, onde o hover funciona.
+                  <div className="absolute right-1 top-1 flex gap-0.5 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                    <button
+                      onClick={() =>
+                        setCorAberta(corAberta === m.id ? null : m.id)
+                      }
+                      title="Mudar a cor"
+                      aria-label="Mudar a cor da pasta"
+                      className="grid h-7 w-7 place-items-center rounded-full bg-white/95 text-pink-500 shadow-sm"
+                    >
+                      <Palette className="h-3.5 w-3.5" />
+                    </button>
                     <button
                       onClick={async () => {
                         const novo = await promptBonito({
@@ -250,17 +270,41 @@ export function PastasDeMateriais({
                         if (novo?.trim()) await updateModulo(m.id, { nome: novo.trim() });
                       }}
                       title="Renomear"
-                      className="grid h-6 w-6 place-items-center rounded-full bg-white/90 text-pink-500 shadow-sm"
+                      aria-label="Renomear pasta"
+                      className="grid h-7 w-7 place-items-center rounded-full bg-white/95 text-pink-500 shadow-sm"
                     >
-                      <Pencil className="h-3 w-3" />
+                      <Pencil className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => apagarPasta(m)}
                       title="Apagar pasta"
-                      className="grid h-6 w-6 place-items-center rounded-full bg-white/90 text-pink-300 shadow-sm hover:text-rose-500"
+                      aria-label="Apagar pasta"
+                      className="grid h-7 w-7 place-items-center rounded-full bg-white/95 text-pink-300 shadow-sm hover:text-rose-500"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
+                  </div>
+                )}
+
+                {corAberta === m.id && (
+                  <div className="absolute inset-x-1 bottom-1 z-20 rounded-2xl border border-pink-100 bg-white p-2 shadow-xl">
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {CORES_MODULO_NOMEADAS.map((c) => (
+                        <button
+                          key={c.cor}
+                          onClick={async () => {
+                            await updateModulo(m.id, { cor: c.cor });
+                            setCorAberta(null);
+                          }}
+                          title={c.nome}
+                          aria-label={c.nome}
+                          className={`h-6 w-full rounded-full transition-transform active:scale-90 ${
+                            m.cor === c.cor ? "ring-2 ring-pink-400 ring-offset-1" : ""
+                          }`}
+                          style={{ backgroundColor: c.cor }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
               </li>

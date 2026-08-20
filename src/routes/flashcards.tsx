@@ -220,7 +220,9 @@ function CartoesTab({ perfil }: { perfil: Perfil | null }) {
 
   return (
     <div className="space-y-6">
-      {perfilGlobalCards?.is_admin && (
+      {/* Quem cria o baralho organiza: toda aluna aprovada pode ter as
+          próprias pastas aqui, não só a Naty. */}
+      {perfilGlobalCards && (
         <div>
           <button
             onClick={() => setGerenciandoPastas((g) => !g)}
