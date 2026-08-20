@@ -474,6 +474,47 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_atividade: {
+        Args: { p_limite?: number }
+        Returns: {
+          quando: string
+          tipo: string
+          quem: string
+          foto_url: string | null
+          descricao: string
+          detalhe: string | null
+        }[]
+      }
+      admin_usuarios: {
+        Args: Record<string, never>
+        Returns: {
+          id: string
+          nome: string
+          email: string
+          periodo: string | null
+          foto_url: string | null
+          is_admin: boolean
+          is_accepted: boolean
+          recusado_em: string | null
+          criado_at: string
+          ultimo_acesso: string | null
+          data_nascimento: string | null
+          quizzes: number
+          nota_media: number | null
+          melhor_nota: number | null
+          sessoes: number
+          melhor_flashcard: number | null
+          baralhos: number
+          cards: number
+          materias: number
+          resumos_lidos: number
+          ultima_atividade: string | null
+        }[]
+      }
+      admin_visao_geral: {
+        Args: Record<string, never>
+        Returns: Json
+      }
       ranking_questoes: {
         Args: { p_estudo_id?: string | null }
         Returns: {

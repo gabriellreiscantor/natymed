@@ -11,6 +11,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { usePerfilAtivo } from "@/lib/perfis-store";
+import { Shield } from "lucide-react";
 import { trocarPerfil } from "@/components/PerfilGate";
 import { iniciais } from "@/lib/upload-avatar";
 
@@ -30,6 +31,9 @@ export function AppNav() {
   const isPublic = location.pathname === "/";
   // No Início não faz sentido oferecer "voltar": já é a primeira tela de dentro.
   const isInicio = location.pathname === "/dashboard";
+  // Atalho só para o dono. O banco é quem realmente barra o acesso;
+  // aqui é só para não poluir a barra das meninas.
+  const ehDono = perfil?.email?.toLowerCase() === "ghabriellreis@gmail.com";
 
   if (isPublic) return null;
 
@@ -81,6 +85,15 @@ export function AppNav() {
 
           {perfil && (
             <div className="flex shrink-0 items-center gap-0.5">
+              {ehDono && (
+                <Link
+                  to="/admin"
+                  aria-label="Painel do dono"
+                  className="grid h-9 w-9 place-items-center rounded-full text-pink-400 active:scale-95"
+                >
+                  <Shield className="h-4 w-4" />
+                </Link>
+              )}
               <Link
                 to="/perfil"
                 aria-label="Meu perfil"
@@ -152,6 +165,15 @@ export function AppNav() {
 
             {perfil && (
               <div className="absolute right-0 flex items-center gap-1">
+                {ehDono && (
+                  <Link
+                    to="/admin"
+                    title="Painel do dono"
+                    className="grid h-8 w-8 place-items-center rounded-full text-pink-400 hover:bg-pink-50 hover:text-pink-600"
+                  >
+                    <Shield className="h-4 w-4" />
+                  </Link>
+                )}
                 <Link
                   to="/perfil"
                   className="flex items-center gap-1.5 rounded-full border border-pink-200 bg-white/70 py-1 pl-1 pr-2.5 text-xs text-pink-700 shadow-sm hover:bg-pink-50"
