@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { alertarBonito, confirmarBonito } from "@/components/ConfirmDialog";
 import { CompletarNascimento } from "@/components/CompletarNascimento";
+import { EscolherPasta } from "@/components/EscolherPasta";
 import { useEffect, useRef, useState } from "react";
 import { BookOpen, FileText, Loader2, RotateCcw, Upload, Users, Check, X, Sparkles } from "lucide-react";
 import { usePerfilAtivo, listAllProfiles, acceptProfile, revokeProfile, rejectProfile, undoRejectProfile, countPendentes, assinarPerfisRealtime } from "@/lib/perfis-store";
@@ -34,6 +35,11 @@ function Index() {
   const [current, setCurrent] = useState<CurrentStudy | null>(null);
   const [tab, setTab] = useState<"estudo" | "admin">("estudo");
   const [pendentes, setPendentes] = useState(0);
+  const [paraGuardar, setParaGuardar] = useState<{
+    id: string;
+    nome: string;
+    destino: string;
+  } | null>(null);
 
   // Sem isso a Naty só descobria que tem alguém na fila se abrisse a aba por acaso.
   useEffect(() => {
@@ -93,8 +99,13 @@ function Index() {
         );
       }
       setStage("Salvando estudo...");
-      await createStudy(file.name.replace(/\.pdf$/i, ""), parsed);
-      navigate({ to: parsed.questoes.length > 0 ? "/questoes" : "/resumos" });
+      const criado = await createStudy(file.name.replace(/\.pdf$/i, ""), parsed);
+      // Pergunta a pasta antes de sair da tela: depois ela já esqueceu.
+      setParaGuardar({
+        id: criado.id,
+        nome: criado.nome,
+        destino: parsed.questoes.length > 0 ? "/questoes" : "/resumos",
+      });
     } catch (e) {
       console.error("[upload PDF]", e);
       setError(
@@ -113,6 +124,18 @@ function Index() {
   return (
     <div className="min-h-[calc(100vh-160px)] py-10 sm:py-16">
       {perfil && <CompletarNascimento perfil={perfil} />}
+
+      {paraGuardar && (
+        <EscolherPasta
+          estudoId={paraGuardar.id}
+          nomeEstudo={paraGuardar.nome}
+          onPronto={() => {
+            const destino = paraGuardar.destino;
+            setParaGuardar(null);
+            navigate({ to: destino });
+          }}
+        />
+      )}
       <div className="mx-auto max-w-5xl px-4">
         {/* Cabeçalho do Dashboard */}
         <div className="flex flex-col items-center text-center mb-12">

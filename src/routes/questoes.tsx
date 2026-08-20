@@ -1,13 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, FileText, RotateCcw, Target, Trophy, X } from "lucide-react";
-import {
-  EtiquetaModulo,
-  FiltroModulos,
-  GerenciarModulos,
-  SeletorModulo,
-} from "@/components/Modulos";
-import { listModulos, onModulosChange, type Modulo } from "@/lib/modulos-store";
+import { PastasDeMateriais } from "@/components/PastasDeMateriais";
 
 import {
   addHistory,
@@ -15,12 +9,10 @@ import {
   loadCurrent,
   loadProgresso,
   saveProgresso,
-  saveQuestoes,
   getRankingQuestoes,
   type CurrentStudy,
   type RankingQuestoes,
 } from "@/lib/study-store";
-import { StudyPicker } from "@/components/StudyPicker";
 import { usePerfilAtivo } from "@/lib/perfis-store";
 
 
@@ -41,15 +33,6 @@ function QuestoesPage() {
   // questões. É uma rodada de treino: não mexe no progresso salvo do quiz.
   const [somenteErros, setSomenteErros] = useState<number[] | null>(null);
   const [aba, setAba] = useState<"quiz" | "ranking">("quiz");
-  const [modulos, setModulos] = useState<Modulo[]>([]);
-  const [filtroModulo, setFiltroModulo] = useState<string | null>(null);
-  const [gerenciando, setGerenciando] = useState(false);
-
-  useEffect(() => {
-    const carregar = () => listModulos("questoes").then(setModulos);
-    carregar();
-    return onModulosChange(carregar);
-  }, []);
   const [, setCarregando] = useState(true);
   const navigate = useNavigate();
   // Evita salvar antes de carregar o progresso remoto (não sobrescreve com {} vazio)
@@ -98,23 +81,10 @@ function QuestoesPage() {
     };
   }, [perfil?.id]);
 
-  const podeEditarQuestoes =
-    !!perfil && !!current && current.perfil_id === perfil.id;
-
   const visiveis = useMemo(() => {
     if (!current) return [] as number[];
-    if (somenteErros) return somenteErros;
-    // Filtrar por pasta muda o conjunto da prova: a nota passa a ser só
-    // daquelas questões, o que é justamente a ideia de treinar um módulo.
-    return current.questoes
-      .map((_, i) => i)
-      .filter((i) => {
-        const mid = current.questoes[i].modulo_id ?? null;
-        if (filtroModulo === "__sem__") return !mid;
-        if (filtroModulo) return mid === filtroModulo;
-        return true;
-      });
-  }, [current, somenteErros, filtroModulo]);
+    return somenteErros ?? current.questoes.map((_, i) => i);
+  }, [current, somenteErros]);
 
   const total = visiveis.length;
   const respondidas = visiveis.filter((i) => Boolean(respostas[i])).length;
@@ -194,7 +164,7 @@ function QuestoesPage() {
           <h1 className="text-4xl">Questões</h1>
           <p className="mt-2 text-muted-foreground">Escolha um estudo.</p>
         </div>
-        <StudyPicker currentId={current?.id ?? null} onPick={() => {}} />
+        <PastasDeMateriais secao="questoes" currentId={current?.id} onPick={() => {}} />
         <div className="rounded-3xl border border-dashed border-border bg-card p-10 text-center">
           <p className="text-muted-foreground">
             {current
@@ -212,27 +182,6 @@ function QuestoesPage() {
     );
   }
 
-
-  function mudarFiltroModulo(id: string | null) {
-    setFiltroModulo(id);
-    setSomenteErros(null);
-    setFinalizado(false);
-    historicoSalvoRef.current = null;
-  }
-
-  /** Muda a pasta de uma questão. A pasta vive dentro da própria questão. */
-  async function mudarPastaQuestao(indice: number, moduloId: string | null) {
-    if (!current) return;
-    const novas = current.questoes.map((q, i) =>
-      i === indice ? { ...q, modulo_id: moduloId } : q,
-    );
-    setCurrent({ ...current, questoes: novas });
-    try {
-      await saveQuestoes(current.id, novas);
-    } catch {
-      setCurrent(current);
-    }
-  }
 
   function refazer() {
     if (current) deleteProgresso(current.id);
@@ -313,43 +262,13 @@ function QuestoesPage() {
         />
       ) : (
       <>
-      <StudyPicker currentId={current.id} onPick={() => {}} />
+      <PastasDeMateriais secao="questoes" currentId={current.id} onPick={() => {}} />
 
       <div className="mb-6">
         <p className="text-xs uppercase tracking-wider text-muted-foreground">
           {current.nome}
         </p>
       </div>
-
-      {podeEditarQuestoes && (
-        <div className="mb-4">
-          <button
-            onClick={() => setGerenciando((g) => !g)}
-            className="rounded-full border border-pink-200 bg-white px-3 py-1.5 text-xs font-bold text-pink-600 hover:bg-pink-50"
-          >
-            {gerenciando ? "Fechar pastas" : "Organizar pastas"}
-          </button>
-          {gerenciando && (
-            <div className="mt-3">
-              <GerenciarModulos secao="questoes" />
-            </div>
-          )}
-        </div>
-      )}
-
-      <FiltroModulos
-        modulos={modulos}
-        itens={current.questoes}
-        filtro={filtroModulo}
-        onFiltrar={mudarFiltroModulo}
-      />
-
-      {filtroModulo && (
-        <p className="mb-4 rounded-2xl bg-pink-50/60 px-4 py-2 text-xs text-pink-600">
-          Você está treinando só uma pasta: a nota vale sobre estas{" "}
-          {visiveis.length} questões. 💗
-        </p>
-      )}
 
       {somenteErros && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-pink-200 bg-pink-50/60 px-4 py-3">
@@ -386,7 +305,6 @@ function QuestoesPage() {
         {visiveis.map((i) => {
           const q = current.questoes[i];
           const escolhida = respostas[i];
-          const pasta = modulos.find((m) => m.id === q.modulo_id);
           const respondida = Boolean(escolhida);
           return (
             <article
@@ -397,22 +315,9 @@ function QuestoesPage() {
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-secondary font-serif text-sm text-rose-dark">
                   {i + 1}
                 </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[15px] leading-relaxed text-foreground/90">
-                    {limparTexto(q.enunciado)}
-                  </p>
-                  <div className="mt-1.5">
-                    {podeEditarQuestoes ? (
-                      <SeletorModulo
-                        modulos={modulos}
-                        valor={q.modulo_id ?? null}
-                        onMudar={(id) => mudarPastaQuestao(i, id)}
-                      />
-                    ) : (
-                      <EtiquetaModulo modulo={pasta} />
-                    )}
-                  </div>
-                </div>
+                <p className="min-w-0 flex-1 text-[15px] leading-relaxed text-foreground/90">
+                  {limparTexto(q.enunciado)}
+                </p>
               </div>
 
               <div className="mt-5 space-y-2">

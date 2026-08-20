@@ -4,6 +4,7 @@ import {
   BookOpen,
   Check,
   Heart,
+  ImagePlus,
   Loader2,
   Pencil,
   Plus,
@@ -12,6 +13,7 @@ import {
   Square,
   X,
 } from "lucide-react";
+import { uploadImagemFlashcard } from "@/lib/upload-avatar";
 import { speak, stopSpeak } from "@/lib/tts";
 
 import {
@@ -23,15 +25,8 @@ import {
   type ResumoMarca,
 } from "@/lib/study-store";
 import { usePerfilAtivo } from "@/lib/perfis-store";
-import {
-  EtiquetaModulo,
-  FiltroModulos,
-  GerenciarModulos,
-  SeletorModulo,
-} from "@/components/Modulos";
-import { listModulos, onModulosChange, type Modulo } from "@/lib/modulos-store";
+import { PastasDeMateriais } from "@/components/PastasDeMateriais";
 import { alertarBonito } from "@/components/ConfirmDialog";
-import { StudyPicker } from "@/components/StudyPicker";
 
 export const Route = createFileRoute("/resumos")({
   head: () => ({
@@ -49,31 +44,6 @@ function ResumosPage() {
   const { perfil } = usePerfilAtivo();
   // Só quem enviou o material pode mexer nele: ele é o mesmo para todas.
   const podeEditar = !!perfil && !!current && current.perfil_id === perfil.id;
-  const [modulos, setModulos] = useState<Modulo[]>([]);
-  const [filtroModulo, setFiltroModulo] = useState<string | null>(null);
-  const [gerenciando, setGerenciando] = useState(false);
-
-  useEffect(() => {
-    const carregar = () => listModulos("resumos").then(setModulos);
-    carregar();
-    return onModulosChange(carregar);
-  }, []);
-
-  /** Muda a pasta de um resumo. A pasta vive dentro do próprio item. */
-  async function mudarPasta(indice: number, moduloId: string | null) {
-    if (!current) return;
-    const novos = current.resumos.map((r, i) =>
-      i === indice ? { ...r, modulo_id: moduloId } : r,
-    );
-    const anterior = current;
-    setCurrent({ ...current, resumos: novos });
-    try {
-      await saveResumos(current.id, novos);
-    } catch (e) {
-      setCurrent(anterior);
-      alertarBonito("Não consegui mudar a pasta. 🌷");
-    }
-  }
 
   useEffect(() => {
     const refresh = () => {
@@ -94,7 +64,7 @@ function ResumosPage() {
 
   async function salvarResumo(
     indice: number,
-    dados: { titulo: string; texto: string },
+    dados: { titulo: string; texto: string; imagens?: string[] },
   ) {
     if (!current) return;
     const novos = current.resumos.map((r, i) =>
@@ -115,7 +85,10 @@ function ResumosPage() {
 
   async function acrescentarResumo() {
     if (!current) return;
-    const novos = [...current.resumos, { titulo: "Novo resumo", texto: "" }];
+    const novos = [
+      ...current.resumos,
+      { titulo: "Novo resumo", texto: "", imagens: [] },
+    ];
     const anterior = current;
     setCurrent({ ...current, resumos: novos });
     try {
@@ -146,7 +119,11 @@ function ResumosPage() {
         </p>
       </div>
 
-      <StudyPicker currentId={current?.id ?? null} onPick={() => {}} />
+      <PastasDeMateriais
+        secao="resumos"
+        currentId={current?.id}
+        onPick={() => {}}
+      />
 
       {!current ? (
         <EmptyState />
@@ -168,29 +145,6 @@ function ResumosPage() {
             {current.nome}
           </p>
 
-          {podeEditar && (
-            <div className="mb-4">
-              <button
-                onClick={() => setGerenciando((g) => !g)}
-                className="rounded-full border border-pink-200 bg-white px-3 py-1.5 text-xs font-bold text-pink-600 hover:bg-pink-50"
-              >
-                {gerenciando ? "Fechar pastas" : "Organizar pastas"}
-              </button>
-              {gerenciando && (
-                <div className="mt-3">
-                  <GerenciarModulos secao="resumos" />
-                </div>
-              )}
-            </div>
-          )}
-
-          <FiltroModulos
-            modulos={modulos}
-            itens={current.resumos}
-            filtro={filtroModulo}
-            onFiltrar={setFiltroModulo}
-          />
-
           <FiltroResumos
             filtro={filtro}
             onMudar={setFiltro}
@@ -206,25 +160,16 @@ function ResumosPage() {
               const marca = marcas.get(i);
               if (filtro === "nao_lidos" && marca?.lido) return null;
               if (filtro === "favoritos" && !marca?.favorito) return null;
-              if (filtroModulo === "__sem__" && r.modulo_id) return null;
-              if (
-                filtroModulo &&
-                filtroModulo !== "__sem__" &&
-                r.modulo_id !== filtroModulo
-              )
-                return null;
               return (
                 <ResumoCard
                   key={i}
                   index={i}
                   titulo={r.titulo}
                   texto={r.texto}
+                  imagens={r.imagens ?? []}
                   lido={!!marca?.lido}
                   favorito={!!marca?.favorito}
                   podeEditar={podeEditar}
-                  modulos={modulos}
-                  moduloId={r.modulo_id ?? null}
-                  onMudarPasta={(id) => mudarPasta(i, id)}
                   onSalvar={(dados) => salvarResumo(i, dados)}
                   onAlterar={(patch) => alterarMarca(i, patch)}
                 />
@@ -339,25 +284,25 @@ function ResumoCard({
   index,
   titulo,
   texto,
+  imagens,
   lido,
   favorito,
   podeEditar,
-  modulos,
-  moduloId,
-  onMudarPasta,
   onSalvar,
   onAlterar,
 }: {
   index: number;
   titulo: string;
   texto: string;
+  imagens: string[];
   lido: boolean;
   favorito: boolean;
   podeEditar: boolean;
-  modulos: Modulo[];
-  moduloId: string | null;
-  onMudarPasta: (id: string | null) => void;
-  onSalvar: (dados: { titulo: string; texto: string }) => Promise<void>;
+  onSalvar: (dados: {
+    titulo: string;
+    texto: string;
+    imagens: string[];
+  }) => Promise<void>;
   onAlterar: (patch: { lido?: boolean; favorito?: boolean }) => void;
 }) {
   const blocos = useMemo(() => parseResumo(texto), [texto]);
@@ -365,6 +310,8 @@ function ResumoCard({
   const [editando, setEditando] = useState(false);
   const [rascunhoTitulo, setRascunhoTitulo] = useState(titulo);
   const [rascunhoTexto, setRascunhoTexto] = useState(texto);
+  const [rascunhoImagens, setRascunhoImagens] = useState<string[]>(imagens);
+  const [enviandoImagem, setEnviandoImagem] = useState(false);
   const [salvando, setSalvando] = useState(false);
 
   function abrirEdicao() {
@@ -372,6 +319,7 @@ function ResumoCard({
     setLendo(false);
     setRascunhoTitulo(titulo);
     setRascunhoTexto(texto);
+    setRascunhoImagens(imagens);
     setEditando(true);
   }
 
@@ -380,7 +328,11 @@ function ResumoCard({
     if (!t) return;
     setSalvando(true);
     try {
-      await onSalvar({ titulo: t, texto: rascunhoTexto });
+      await onSalvar({
+        titulo: t,
+        texto: rascunhoTexto,
+        imagens: rascunhoImagens,
+      });
       setEditando(false);
     } finally {
       setSalvando(false);
@@ -428,6 +380,72 @@ function ResumoCard({
               placeholder="Conteúdo do resumo. Use - no começo da linha para virar tópico e **texto** para negrito."
               className="w-full rounded-2xl border border-pink-200 bg-pink-50/30 px-4 py-3 text-[15px] leading-relaxed text-foreground outline-none focus:border-pink-400"
             />
+            <div>
+              {rascunhoImagens.length > 0 && (
+                <div className="mb-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {rascunhoImagens.map((url, k) => (
+                    <div
+                      key={`${url}-${k}`}
+                      className="relative overflow-hidden rounded-xl border border-pink-200 bg-secondary/30"
+                    >
+                      <img
+                        src={url}
+                        alt=""
+                        className="h-24 w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRascunhoImagens((imgs) =>
+                            imgs.filter((_, idx) => idx !== k),
+                          )
+                        }
+                        title="Remover imagem"
+                        className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-white/90 text-pink-600 shadow"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-pink-200 bg-white px-3 py-1.5 text-xs font-bold text-pink-600 hover:bg-pink-50">
+                {enviandoImagem ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ImagePlus className="h-3.5 w-3.5" />
+                )}
+                {enviandoImagem ? "Enviando..." : "Adicionar imagem"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    if (files.length === 0) return;
+                    setEnviandoImagem(true);
+                    try {
+                      // Uma de cada vez: o ImgBB recusa envios em rajada.
+                      for (const f of files) {
+                        const url = await uploadImagemFlashcard(f);
+                        setRascunhoImagens((imgs) => [...imgs, url]);
+                      }
+                    } catch (err) {
+                      alertarBonito(
+                        err instanceof Error
+                          ? err.message
+                          : "Não consegui enviar a imagem. 🌷",
+                      );
+                    } finally {
+                      setEnviandoImagem(false);
+                      e.target.value = "";
+                    }
+                  }}
+                />
+              </label>
+            </div>
+
             <p className="text-[11px] text-muted-foreground">
               Dica: comece a linha com <strong>-</strong> para virar tópico e use{" "}
               <strong>**assim**</strong> para deixar em negrito.
@@ -443,7 +461,7 @@ function ResumoCard({
               </button>
               <button
                 onClick={confirmar}
-                disabled={salvando || !rascunhoTitulo.trim()}
+                disabled={salvando || enviandoImagem || !rascunhoTitulo.trim()}
                 className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90 disabled:opacity-50"
               >
                 {salvando ? (
@@ -468,17 +486,6 @@ function ResumoCard({
             <h2 className="mt-0.5 font-serif text-2xl leading-tight text-foreground">
               {titulo}
             </h2>
-            <div className="mt-1.5">
-              {podeEditar ? (
-                <SeletorModulo
-                  modulos={modulos}
-                  valor={moduloId}
-                  onMudar={onMudarPasta}
-                />
-              ) : (
-                <EtiquetaModulo modulo={modulos.find((m) => m.id === moduloId)} />
-              )}
-            </div>
           </div>
           {podeEditar && (
             <button
@@ -521,6 +528,8 @@ function ResumoCard({
             <BlocoView key={i} bloco={b} />
           ))}
         </div>
+
+        {imagens.length > 0 && <GaleriaResumo imagens={imagens} />}
 
         <div className="mt-6 border-t border-border pt-4">
           <button
@@ -702,4 +711,61 @@ function parseResumo(bruto: string): Bloco[] {
   }
 
   return blocos;
+}
+
+/**
+ * Imagens do resumo. Uma imagem ocupa a largura toda; duas ou mais viram
+ * grade. Clicar abre em tela cheia, porque esquema de anatomia em miniatura
+ * não serve para estudar.
+ */
+function GaleriaResumo({ imagens }: { imagens: string[] }) {
+  const [aberta, setAberta] = useState<string | null>(null);
+
+  return (
+    <>
+      <div
+        className={`mt-5 grid gap-2 ${
+          imagens.length === 1 ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3"
+        }`}
+      >
+        {imagens.map((url, i) => (
+          <button
+            key={`${url}-${i}`}
+            onClick={() => setAberta(url)}
+            className="group overflow-hidden rounded-2xl border border-border bg-secondary/30 transition-all hover:border-primary/50"
+          >
+            <img
+              src={url}
+              alt={`Imagem ${i + 1} do resumo`}
+              loading="lazy"
+              className={`w-full object-contain transition-transform group-hover:scale-[1.02] ${
+                imagens.length === 1 ? "max-h-[420px]" : "h-32 sm:h-36"
+              }`}
+            />
+          </button>
+        ))}
+      </div>
+
+      {aberta && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          onClick={() => setAberta(null)}
+        >
+          <img
+            src={aberta}
+            alt=""
+            className="max-h-full max-w-full rounded-2xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setAberta(null)}
+            aria-label="Fechar"
+            className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/90 text-pink-700 shadow-lg"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      )}
+    </>
+  );
 }

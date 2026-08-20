@@ -151,10 +151,33 @@ export type Database = {
           },
         ]
       }
+      estudo_pastas: {
+        Row: { estudo_id: string; secao: string; modulo_id: string }
+        Insert: { estudo_id: string; secao: string; modulo_id: string }
+        Update: { estudo_id?: string; secao?: string; modulo_id?: string }
+        Relationships: [
+          {
+            foreignKeyName: "estudo_pastas_estudo_id_fkey"
+            columns: ["estudo_id"]
+            isOneToOne: false
+            referencedRelation: "estudos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estudo_pastas_modulo_id_fkey"
+            columns: ["modulo_id"]
+            isOneToOne: false
+            referencedRelation: "modulos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estudos: {
         Row: {
           compartilhado: boolean | null
           criado_em: string
+          modulo_questoes_id: string | null
+          modulo_resumos_id: string | null
           id: string
           nome: string
           perfil_id: string | null
@@ -164,6 +187,8 @@ export type Database = {
         Insert: {
           compartilhado?: boolean | null
           criado_em?: string
+          modulo_questoes_id?: string | null
+          modulo_resumos_id?: string | null
           id?: string
           nome: string
           perfil_id?: string | null
@@ -173,6 +198,8 @@ export type Database = {
         Update: {
           compartilhado?: boolean | null
           criado_em?: string
+          modulo_questoes_id?: string | null
+          modulo_resumos_id?: string | null
           id?: string
           nome?: string
           perfil_id?: string | null

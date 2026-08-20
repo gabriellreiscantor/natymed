@@ -12,6 +12,8 @@ export interface CurrentStudy extends ParsedPdf {
   criadoEm: string;
   perfil_id: string | null;
   compartilhado: boolean;
+  modulo_resumos_id: string | null;
+  modulo_questoes_id: string | null;
 }
 
 export interface StudyListItem {
@@ -20,6 +22,8 @@ export interface StudyListItem {
   criado_em: string;
   perfil_id: string | null;
   compartilhado: boolean;
+  modulo_resumos_id: string | null;
+  modulo_questoes_id: string | null;
   dono_nome?: string | null;
   dono_foto?: string | null;
 }
@@ -50,6 +54,7 @@ function emit() {
 export async function createStudy(
   nome: string,
   parsed: ParsedPdf,
+  pastas?: { resumos?: string | null; questoes?: string | null },
 ): Promise<CurrentStudy> {
   const perfil = await getProfile();
   if (!perfil) {
@@ -74,6 +79,8 @@ export async function createStudy(
       questoes: parsed.questoes as unknown as Json,
       perfil_id: perfilId,
       compartilhado,
+      modulo_resumos_id: pastas?.resumos ?? null,
+      modulo_questoes_id: pastas?.questoes ?? null,
     })
     .select("*")
     .single();
@@ -86,6 +93,8 @@ export async function createStudy(
     resumos: (data.resumos ?? []) as unknown as ParsedPdf["resumos"],
     questoes: (data.questoes ?? []) as unknown as ParsedPdf["questoes"],
     criadoEm: data.criado_em,
+    modulo_resumos_id: (data as any).modulo_resumos_id ?? null,
+    modulo_questoes_id: (data as any).modulo_questoes_id ?? null,
     perfil_id: data.perfil_id ?? null,
     compartilhado: !!data.compartilhado,
   };
@@ -147,6 +156,8 @@ export async function loadCurrent(): Promise<CurrentStudy | null> {
     resumos: (data.resumos ?? []) as unknown as ParsedPdf["resumos"],
     questoes: (data.questoes ?? []) as unknown as ParsedPdf["questoes"],
     criadoEm: data.criado_em,
+    modulo_resumos_id: (data as any).modulo_resumos_id ?? null,
+    modulo_questoes_id: (data as any).modulo_questoes_id ?? null,
     perfil_id: data.perfil_id ?? null,
     compartilhado: !!data.compartilhado,
   };
@@ -190,7 +201,7 @@ export async function listMeusEstudos(): Promise<StudyListItem[]> {
   if (!perfilId) return [];
   const { data, error } = await supabase
     .from("estudos")
-    .select("id, nome, criado_em, perfil_id, compartilhado")
+    .select("id, nome, criado_em, perfil_id, compartilhado, modulo_resumos_id, modulo_questoes_id")
     .eq("perfil_id", perfilId)
     .order("criado_em", { ascending: false });
   if (error) return [];
@@ -200,6 +211,8 @@ export async function listMeusEstudos(): Promise<StudyListItem[]> {
     criado_em: e.criado_em,
     perfil_id: e.perfil_id ?? null,
     compartilhado: !!e.compartilhado,
+    modulo_resumos_id: (e as any).modulo_resumos_id ?? null,
+    modulo_questoes_id: (e as any).modulo_questoes_id ?? null,
   }));
 }
 
@@ -207,7 +220,7 @@ export async function listCompartilhados(): Promise<StudyListItem[]> {
   const perfilId = await getPerfilAtivoId();
   const { data, error } = await supabase
     .from("estudos")
-    .select("id, nome, criado_em, perfil_id, compartilhado")
+    .select("id, nome, criado_em, perfil_id, compartilhado, modulo_resumos_id, modulo_questoes_id")
     .eq("compartilhado", true)
     .order("criado_em", { ascending: false });
   if (error) return [];
@@ -219,6 +232,8 @@ export async function listCompartilhados(): Promise<StudyListItem[]> {
     criado_em: e.criado_em,
     perfil_id: e.perfil_id ?? null,
     compartilhado: true,
+    modulo_resumos_id: (e as any).modulo_resumos_id ?? null,
+    modulo_questoes_id: (e as any).modulo_questoes_id ?? null,
     dono_nome: e.perfil_id ? donos.get(e.perfil_id)?.nome ?? null : null,
     dono_foto: e.perfil_id ? donos.get(e.perfil_id)?.foto_url ?? null : null,
   }));
@@ -484,6 +499,27 @@ export async function saveQuestoes(
   const { error } = await supabase
     .from("estudos")
     .update({ questoes: questoes as unknown as Json })
+    .eq("id", estudoId);
+  if (error) throw new Error(error.message);
+  emit();
+}
+
+
+/** Move um material para outra pasta, na seção indicada. */
+export async function moverEstudo(
+  estudoId: string,
+  secao: "resumos" | "questoes",
+  moduloId: string | null,
+): Promise<void> {
+  // Coluna explícita por seção: com chave dinâmica o TypeScript perde o tipo
+  // da tabela e deixa passar nome de coluna errado sem avisar.
+  const patch =
+    secao === "resumos"
+      ? { modulo_resumos_id: moduloId }
+      : { modulo_questoes_id: moduloId };
+  const { error } = await supabase
+    .from("estudos")
+    .update(patch)
     .eq("id", estudoId);
   if (error) throw new Error(error.message);
   emit();

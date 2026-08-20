@@ -4,6 +4,8 @@ const EVENT = "modulos:atualizado";
 
 /** Cada tela tem as próprias pastas: não se misturam entre si. */
 export type Secao = "resumos" | "questoes" | "flashcards";
+/** Seções cujo conteúdo são materiais (PDFs). Flashcards usam baralhos. */
+export type SecaoEstudo = "resumos" | "questoes";
 
 export interface Modulo {
   id: string;
@@ -116,4 +118,29 @@ export async function setModuloDoBaralho(
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("flashcards:atualizado"));
   }
+}
+
+
+/** Cria a pasta e já devolve o id, para mover o material logo em seguida. */
+export async function createModuloRetornando(
+  nome: string,
+  cor: string,
+  secao: Secao,
+): Promise<string> {
+  const { data: ultimo } = await supabase
+    .from("modulos")
+    .select("ordem")
+    .eq("secao", secao)
+    .order("ordem", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data, error } = await supabase
+    .from("modulos")
+    .insert({ nome, cor, secao, ordem: (ultimo?.ordem ?? 0) + 1 })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  emit();
+  return data.id;
 }
