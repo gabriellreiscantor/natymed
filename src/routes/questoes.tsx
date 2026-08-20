@@ -37,6 +37,11 @@ function QuestoesPage() {
   const navigate = useNavigate();
   // Evita salvar antes de carregar o progresso remoto (não sobrescreve com {} vazio)
   const prontoParaSalvar = useRef(false);
+  // Trava de gravação do histórico. Precisa ser ref, não estado: o recarregamento
+  // disparado pelo próprio salvamento reescrevia o estado "salvo" com o valor
+  // antigo do banco e a prova era gravada 2 ou 3 vezes.
+  const historicoSalvoRef = useRef<string | null>(null);
+  const ultimoEstudoRef = useRef<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -46,6 +51,11 @@ function QuestoesPage() {
       const cur = await loadCurrent();
       if (!alive) return;
       setCurrent(cur);
+      if (cur && ultimoEstudoRef.current !== cur.id) {
+        // Estudo diferente: é outra prova, pode gravar de novo.
+        ultimoEstudoRef.current = cur.id;
+        historicoSalvoRef.current = null;
+      }
       if (cur) {
         const p = await loadProgresso(cur.id);
         if (!alive) return;
@@ -116,7 +126,14 @@ function QuestoesPage() {
   }, [current, total, respondidas, finalizado]);
 
   useEffect(() => {
-    if (finalizado && current && !salvo) {
+    if (!finalizado || !current) return;
+    const chave = `${current.id}|${somenteErros ? "revisao" : "quiz"}`;
+    // Marca ANTES de chamar o banco: se marcasse depois, o efeito rodava de
+    // novo enquanto a gravação estava no ar e duplicava a prova.
+    if (historicoSalvoRef.current === chave) return;
+    historicoSalvoRef.current = chave;
+
+    {
       const nota = total > 0 ? Math.round((acertos / total) * 100) / 10 : 0;
       addHistory({
         estudo_id: current.id,
@@ -168,6 +185,7 @@ function QuestoesPage() {
 
   function refazer() {
     if (current) deleteProgresso(current.id);
+    historicoSalvoRef.current = null;
     setSomenteErros(null);
     setRespostas({});
     setFinalizado(false);
@@ -182,6 +200,7 @@ function QuestoesPage() {
   function treinarErros() {
     const erros = indicesErrados;
     if (erros.length === 0) return;
+    historicoSalvoRef.current = null;
     setSomenteErros(erros);
     setRespostas((r) => {
       const limpo = { ...r };

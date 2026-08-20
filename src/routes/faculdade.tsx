@@ -298,6 +298,21 @@ function ListaMaterias({
           </p>
         </div>
       ) : (
+        <>
+        {materias.filter((m) => !m.total_aulas).length > 0 && (
+          <div className="mb-4 rounded-2xl border border-pink-200 bg-pink-50/50 px-4 py-3">
+            <p className="text-sm font-medium text-pink-700">
+              {materias.filter((m) => !m.total_aulas).length === materias.length
+                ? "Suas matérias ainda estão vazias 🌸"
+                : `${materias.filter((m) => !m.total_aulas).length} matéria(s) sem carga horária`}
+            </p>
+            <p className="mt-1 text-xs text-pink-600/80">
+              Abra cada uma e preencha o total de aulas e as provas do semestre.
+              Aí eu te mostro quantas faltas ainda pode tomar e quanto precisa
+              tirar pra passar. 💗
+            </p>
+          </div>
+        )}
         <ul className="grid gap-3 sm:grid-cols-2">
           {materias.map((m) => (
             <CardMateria
@@ -308,6 +323,7 @@ function ListaMaterias({
             />
           ))}
         </ul>
+        </>
       )}
     </section>
   );
@@ -849,10 +865,26 @@ function BlocoFaltas({ materia }: { materia: Materia }) {
           </p>
         </div>
       ) : (
-        <p className="mt-4 text-[11px] text-muted-foreground">
-          Preencha o total de aulas para eu calcular quantas faltas você ainda
-          pode tomar.
-        </p>
+        <div className="mt-4 rounded-2xl border border-dashed border-pink-200 bg-pink-50/40 p-4">
+          <p className="text-sm font-medium text-pink-700">
+            Preencha o total de aulas para destravar o controle de faltas.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            É a carga horária da matéria no semestre. Com isso eu calculo
+            quantas faltas você ainda pode tomar sem reprovar.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[30, 40, 60, 80].map((n) => (
+              <button
+                key={n}
+                onClick={() => updateMateria(materia.id, { total_aulas: n })}
+                className="rounded-full border border-pink-200 bg-white px-3 py-1.5 text-xs font-bold text-pink-600 transition-all hover:bg-pink-50 active:scale-95"
+              >
+                {n} aulas
+              </button>
+            ))}
+          </div>
+        </div>
       )}
     </Bloco>
   );
