@@ -14,6 +14,8 @@ export interface Baralho {
   id: string;
   perfil_id: string | null;
   titulo: string;
+  /** Pasta a que o baralho pertence. Null = solto. */
+  modulo_id: string | null;
   criado_em: string;
 }
 
@@ -143,7 +145,7 @@ export async function deletePerfil(id: string): Promise<void> {
 export async function listBaralhos(perfilId?: string): Promise<Baralho[]> {
   let q = supabase
     .from("flashcard_baralhos")
-    .select("id, perfil_id, titulo, criado_em")
+    .select("id, perfil_id, titulo, modulo_id, criado_em")
     .order("criado_em", { ascending: false });
   if (perfilId) q = q.eq("perfil_id", perfilId);
   const { data, error } = await q;
@@ -161,7 +163,7 @@ export async function createBaralho(
   const { data, error } = await supabase
     .from("flashcard_baralhos")
     .insert({ perfil_id: perfilId, titulo })
-    .select("id, perfil_id, titulo, criado_em")
+    .select("id, perfil_id, titulo, modulo_id, criado_em")
     .single();
   if (error) {
     console.error("[criar baralho]", error.message);

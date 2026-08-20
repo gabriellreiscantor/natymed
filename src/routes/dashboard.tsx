@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { alertarBonito, confirmarBonito } from "@/components/ConfirmDialog";
 import { CompletarNascimento } from "@/components/CompletarNascimento";
+import { GerenciarModulos } from "@/components/Modulos";
 import { useEffect, useRef, useState } from "react";
 import { BookOpen, FileText, Loader2, RotateCcw, Upload, Users, Check, X, Sparkles } from "lucide-react";
 import { usePerfilAtivo, listAllProfiles, acceptProfile, revokeProfile, rejectProfile, undoRejectProfile, countPendentes, assinarPerfisRealtime } from "@/lib/perfis-store";
@@ -299,6 +300,12 @@ function Index() {
               {error && (
                 <div className="mt-8 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
                   {error}
+                </div>
+              )}
+
+              {perfil?.is_admin && (
+                <div className="mt-12">
+                  <GerenciarModulos />
                 </div>
               )}
 

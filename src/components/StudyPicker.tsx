@@ -12,6 +12,13 @@ import {
   type StudyListItem,
 } from "@/lib/study-store";
 import { usePerfilAtivo } from "@/lib/perfis-store";
+import { EtiquetaModulo } from "@/components/Modulos";
+import {
+  listModulos,
+  onModulosChange,
+  setModuloDoEstudo,
+  type Modulo,
+} from "@/lib/modulos-store";
 
 export function StudyPicker({
   currentId,
@@ -27,6 +34,16 @@ export function StudyPicker({
   // Só a Naty envia PDF. Para as alunas não faz sentido a aba "Meus":
   // elas veem direto os materiais que ela compartilhou.
   const ehAdmin = !!perfil?.is_admin;
+  const [modulos, setModulos] = useState<Modulo[]>([]);
+  const [filtroModulo, setFiltroModulo] = useState<string | null>(null);
+
+  useEffect(() => {
+    const carregar = () => listModulos().then(setModulos);
+    carregar();
+    return onModulosChange(carregar);
+  }, []);
+
+  const porId = new Map(modulos.map((m) => [m.id, m]));
 
   const refresh = () => {
     listMeusEstudos().then(setMeus);
@@ -39,7 +56,18 @@ export function StudyPicker({
     return () => window.removeEventListener("estudo:atualizado", refresh);
   }, []);
 
-  const list = !ehAdmin ? comp : tab === "meus" ? meus : comp;
+  const base = !ehAdmin ? comp : tab === "meus" ? meus : comp;
+  const list = filtroModulo
+    ? base.filter((s) =>
+        filtroModulo === "__sem__" ? !s.modulo_id : s.modulo_id === filtroModulo,
+      )
+    : base;
+
+  // Só oferece o filtro quando existe módulo com material dentro.
+  const modulosComConteudo = modulos.filter((m) =>
+    base.some((s) => s.modulo_id === m.id),
+  );
+  const temSemModulo = base.some((s) => !s.modulo_id);
 
   return (
     <div className="mb-6 rounded-3xl border border-border bg-card/70 p-4 shadow-sm">
@@ -72,6 +100,52 @@ export function StudyPicker({
         </p>
       )}
 
+      {(modulosComConteudo.length > 0 || (temSemModulo && modulos.length > 0)) && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setFiltroModulo(null)}
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition ${
+              filtroModulo === null
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-pink-200 bg-white text-pink-600 hover:bg-pink-50"
+            }`}
+          >
+            Todos
+          </button>
+          {modulosComConteudo.map((m) => {
+            const ativo = filtroModulo === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => setFiltroModulo(ativo ? null : m.id)}
+                className="rounded-full border px-2.5 py-1 text-[11px] font-bold transition"
+                style={
+                  ativo
+                    ? { backgroundColor: m.cor, borderColor: m.cor, color: "#fff" }
+                    : { borderColor: `${m.cor}66`, color: m.cor }
+                }
+              >
+                {m.nome}
+              </button>
+            );
+          })}
+          {temSemModulo && modulosComConteudo.length > 0 && (
+            <button
+              onClick={() =>
+                setFiltroModulo(filtroModulo === "__sem__" ? null : "__sem__")
+              }
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition ${
+                filtroModulo === "__sem__"
+                  ? "border-slate-400 bg-slate-400 text-white"
+                  : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+              }`}
+            >
+              Sem módulo
+            </button>
+          )}
+        </div>
+      )}
+
       {list.length === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">
           {!ehAdmin
@@ -102,11 +176,32 @@ export function StudyPicker({
                   className="min-w-0 flex-1 text-left"
                 >
                   <p className="truncate font-medium">{s.nome}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {(!ehAdmin || tab === "compartilhados") && s.dono_nome && `por ${s.dono_nome} • `}
-                    {new Date(s.criado_em).toLocaleDateString("pt-BR")}
+                  <p className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <EtiquetaModulo modulo={porId.get(s.modulo_id ?? "")} />
+                    <span>
+                      {(!ehAdmin || tab === "compartilhados") && s.dono_nome && `por ${s.dono_nome} • `}
+                      {new Date(s.criado_em).toLocaleDateString("pt-BR")}
+                    </span>
                   </p>
                 </button>
+
+                {dela && modulos.length > 0 && (
+                  <select
+                    value={s.modulo_id ?? ""}
+                    onChange={(e) =>
+                      setModuloDoEstudo(s.id, e.target.value || null)
+                    }
+                    title="Módulo deste material"
+                    className="max-w-[110px] shrink-0 rounded-full border border-pink-200 bg-white px-2 py-1 text-[11px] text-pink-700 outline-none"
+                  >
+                    <option value="">Sem módulo</option>
+                    {modulos.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nome}
+                      </option>
+                    ))}
+                  </select>
+                )}
 
                 {dela && (
                   <>

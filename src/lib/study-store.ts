@@ -20,6 +20,7 @@ export interface StudyListItem {
   criado_em: string;
   perfil_id: string | null;
   compartilhado: boolean;
+  modulo_id: string | null;
   dono_nome?: string | null;
   dono_foto?: string | null;
 }
@@ -190,7 +191,7 @@ export async function listMeusEstudos(): Promise<StudyListItem[]> {
   if (!perfilId) return [];
   const { data, error } = await supabase
     .from("estudos")
-    .select("id, nome, criado_em, perfil_id, compartilhado")
+    .select("id, nome, criado_em, perfil_id, compartilhado, modulo_id")
     .eq("perfil_id", perfilId)
     .order("criado_em", { ascending: false });
   if (error) return [];
@@ -200,6 +201,7 @@ export async function listMeusEstudos(): Promise<StudyListItem[]> {
     criado_em: e.criado_em,
     perfil_id: e.perfil_id ?? null,
     compartilhado: !!e.compartilhado,
+    modulo_id: (e as any).modulo_id ?? null,
   }));
 }
 
@@ -207,7 +209,7 @@ export async function listCompartilhados(): Promise<StudyListItem[]> {
   const perfilId = await getPerfilAtivoId();
   const { data, error } = await supabase
     .from("estudos")
-    .select("id, nome, criado_em, perfil_id, compartilhado")
+    .select("id, nome, criado_em, perfil_id, compartilhado, modulo_id")
     .eq("compartilhado", true)
     .order("criado_em", { ascending: false });
   if (error) return [];
@@ -219,6 +221,7 @@ export async function listCompartilhados(): Promise<StudyListItem[]> {
     criado_em: e.criado_em,
     perfil_id: e.perfil_id ?? null,
     compartilhado: true,
+    modulo_id: (e as any).modulo_id ?? null,
     dono_nome: e.perfil_id ? donos.get(e.perfil_id)?.nome ?? null : null,
     dono_foto: e.perfil_id ? donos.get(e.perfil_id)?.foto_url ?? null : null,
   }));

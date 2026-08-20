@@ -57,6 +57,41 @@ export type Database = {
           },
         ]
       }
+      modulos: {
+        Row: {
+          cor: string
+          criado_em: string
+          criado_por: string | null
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          cor?: string
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          cor?: string
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modulos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materias: {
         Row: {
           anotacoes: string | null
@@ -117,6 +152,7 @@ export type Database = {
         Row: {
           compartilhado: boolean | null
           criado_em: string
+          modulo_id: string | null
           id: string
           nome: string
           perfil_id: string | null
@@ -126,6 +162,7 @@ export type Database = {
         Insert: {
           compartilhado?: boolean | null
           criado_em?: string
+          modulo_id?: string | null
           id?: string
           nome: string
           perfil_id?: string | null
@@ -135,6 +172,7 @@ export type Database = {
         Update: {
           compartilhado?: boolean | null
           criado_em?: string
+          modulo_id?: string | null
           id?: string
           nome?: string
           perfil_id?: string | null
@@ -148,6 +186,7 @@ export type Database = {
           cor: string | null
           criado_em: string
           id: string
+          modulo_id: string | null
           perfil_id: string | null
           titulo: string
         }
@@ -155,6 +194,7 @@ export type Database = {
           cor?: string | null
           criado_em?: string
           id?: string
+          modulo_id?: string | null
           perfil_id?: string | null
           titulo: string
         }
@@ -162,6 +202,7 @@ export type Database = {
           cor?: string | null
           criado_em?: string
           id?: string
+          modulo_id?: string | null
           perfil_id?: string | null
           titulo?: string
         }

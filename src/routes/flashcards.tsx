@@ -45,6 +45,13 @@ import {
 } from "@/lib/flashcards-store";
 import { usePerfilAtivo } from "@/lib/perfis-store";
 import { uploadImagemFlashcard } from "@/lib/upload-avatar";
+import { EtiquetaModulo } from "@/components/Modulos";
+import {
+  listModulos,
+  onModulosChange,
+  setModuloDoBaralho,
+  type Modulo,
+} from "@/lib/modulos-store";
 
 export const Route = createFileRoute("/flashcards")({
   head: () => ({
@@ -190,6 +197,13 @@ function CartoesTab({ perfil }: { perfil: Perfil | null }) {
     if (t && t.trim() && t.trim() !== b.titulo) await renameBaralho(b.id, t.trim());
   };
 
+  const [modulosMeus, setModulosMeus] = useState<Modulo[]>([]);
+  useEffect(() => {
+    const carregar = () => listModulos().then(setModulosMeus);
+    carregar();
+    return onModulosChange(carregar);
+  }, []);
+
   const apagar = async (b: Baralho) => {
     if (await confirmarBonito({
       titulo: "Apagar baralho?",
@@ -247,7 +261,24 @@ function CartoesTab({ perfil }: { perfil: Perfil | null }) {
                     {contagens[b.id] ?? 0} cartão{(contagens[b.id] ?? 0) === 1 ? "" : "es"}
                   </div>
                 </button>
-                <div className="mt-3 flex justify-end gap-1">
+                <div className="mt-3 flex items-center justify-end gap-1">
+                  {modulosMeus.length > 0 && (
+                    <select
+                      value={b.modulo_id ?? ""}
+                      onChange={(e) =>
+                        setModuloDoBaralho(b.id, e.target.value || null)
+                      }
+                      title="Módulo deste baralho"
+                      className="mr-auto max-w-[140px] rounded-full border border-pink-200 bg-white px-2 py-1 text-[11px] text-pink-700 outline-none"
+                    >
+                      <option value="">Sem módulo</option>
+                      {modulosMeus.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.nome}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   <Button variant="ghost" size="sm" onClick={() => renomear(b)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -560,6 +591,8 @@ type Resultado = "acerto" | "erro" | "duvida";
 function JogarTab({ perfil }: { perfil: Perfil | null }) {
   const [decks, setDecks] = useState<Deck[]>([]);
   const [deckAtivo, setDeckAtivo] = useState<Deck | null>(null);
+  const [modulos, setModulos] = useState<Modulo[]>([]);
+  const [filtro, setFiltro] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setDecks(await listDecks());
@@ -569,6 +602,20 @@ function JogarTab({ perfil }: { perfil: Perfil | null }) {
     refresh();
     return onFlashcardsChange(refresh);
   }, [refresh]);
+
+  useEffect(() => {
+    const carregar = () => listModulos().then(setModulos);
+    carregar();
+    return onModulosChange(carregar);
+  }, []);
+
+  const porId = new Map(modulos.map((m) => [m.id, m]));
+  const modulosComDeck = modulos.filter((m) =>
+    decks.some((d) => d.baralho.modulo_id === m.id),
+  );
+  const visiveis = filtro
+    ? decks.filter((d) => d.baralho.modulo_id === filtro)
+    : decks;
 
   if (!perfil) return <SemPerfil />;
 
@@ -587,10 +634,43 @@ function JogarTab({ perfil }: { perfil: Perfil | null }) {
       <div className="flex items-baseline justify-between">
         <h2 className="font-serif text-xl">Escolha um baralho</h2>
         <span className="text-xs text-muted-foreground">
-          {decks.length} baralho{decks.length === 1 ? "" : "s"}
+          {visiveis.length} baralho{visiveis.length === 1 ? "" : "s"}
         </span>
       </div>
-      {decks.length === 0 ? (
+
+      {modulosComDeck.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setFiltro(null)}
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition ${
+              filtro === null
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-pink-200 bg-white text-pink-600"
+            }`}
+          >
+            Todos
+          </button>
+          {modulosComDeck.map((m) => {
+            const ativo = filtro === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => setFiltro(ativo ? null : m.id)}
+                className="rounded-full border px-2.5 py-1 text-[11px] font-bold transition"
+                style={
+                  ativo
+                    ? { backgroundColor: m.cor, borderColor: m.cor, color: "#fff" }
+                    : { borderColor: `${m.cor}66`, color: m.cor }
+                }
+              >
+                {m.nome}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {visiveis.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             Ainda não há baralhos. Vá em <strong>Meus cartões</strong> e crie o primeiro 💗
@@ -598,7 +678,7 @@ function JogarTab({ perfil }: { perfil: Perfil | null }) {
         </Card>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">
-          {decks.map((d) => (
+          {visiveis.map((d) => (
             <li key={d.baralho.id}>
               <button
                 type="button"
@@ -614,8 +694,11 @@ function JogarTab({ perfil }: { perfil: Perfil | null }) {
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-serif text-base text-rose-dark">
-                    {d.baralho.titulo}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="truncate font-serif text-base text-rose-dark">
+                      {d.baralho.titulo}
+                    </span>
+                    <EtiquetaModulo modulo={porId.get(d.baralho.modulo_id ?? "")} />
                   </div>
                   <div className="truncate text-xs text-muted-foreground">
                     por {d.perfil.nome}
