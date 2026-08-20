@@ -485,6 +485,10 @@ export type Database = {
           detalhe: string | null
         }[]
       }
+      admin_aluna_detalhe: {
+        Args: { p_id: string }
+        Returns: Json
+      }
       admin_usuarios: {
         Args: Record<string, never>
         Returns: {

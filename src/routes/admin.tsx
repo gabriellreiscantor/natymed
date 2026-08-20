@@ -7,6 +7,7 @@ import {
   GraduationCap,
   Layers,
   Loader2,
+  NotebookPen,
   Search,
   ShieldAlert,
   Users,
@@ -14,11 +15,13 @@ import {
 
 import {
   carregarAtividade,
+  carregarDetalheAluna,
   carregarUsuarios,
   carregarVisaoGeral,
   SemAcesso,
   tempoRelativo,
   type Atividade,
+  type DetalheAluna,
   type UsuarioAdmin,
   type VisaoGeral,
 } from "@/lib/admin-store";
@@ -357,6 +360,20 @@ function Etiqueta({ u }: { u: UsuarioAdmin }) {
 }
 
 function Detalhe({ u }: { u: UsuarioAdmin }) {
+  const [conteudo, setConteudo] = useState<DetalheAluna | null>(null);
+  const [carregandoConteudo, setCarregandoConteudo] = useState(true);
+
+  useEffect(() => {
+    let vivo = true;
+    carregarDetalheAluna(u.id)
+      .then((d) => vivo && setConteudo(d))
+      .catch(() => {})
+      .finally(() => vivo && setCarregandoConteudo(false));
+    return () => {
+      vivo = false;
+    };
+  }, [u.id]);
+
   const linhas: Array<[string, string]> = [
     ["Período", u.periodo || "—"],
     [
@@ -382,15 +399,152 @@ function Detalhe({ u }: { u: UsuarioAdmin }) {
   ];
 
   return (
-    <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-2 rounded-2xl bg-pink-50/50 p-4 sm:grid-cols-4">
-      {linhas.map(([k, val]) => (
-        <div key={k}>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-pink-400">
-            {k}
-          </p>
-          <p className="text-sm font-medium text-pink-800">{val}</p>
-        </div>
-      ))}
+    <div className="mt-1 space-y-4 rounded-2xl bg-pink-50/50 p-4">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+        {linhas.map(([k, val]) => (
+          <div key={k}>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-pink-400">
+              {k}
+            </p>
+            <p className="text-sm font-medium text-pink-800">{val}</p>
+          </div>
+        ))}
+      </div>
+
+      {carregandoConteudo ? (
+        <p className="text-xs text-muted-foreground">Carregando conteúdo…</p>
+      ) : conteudo ? (
+        <ConteudoDaAluna d={conteudo} />
+      ) : null}
+    </div>
+  );
+}
+
+function ConteudoDaAluna({ d }: { d: DetalheAluna }) {
+  const nada =
+    d.materias.length === 0 && d.baralhos.length === 0 && d.provas.length === 0;
+  if (nada) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        Ela ainda não criou nada por aqui.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-4 border-t border-pink-100 pt-4">
+      {d.materias.length > 0 && (
+        <Grupo titulo={`Matérias (${d.materias.length})`}>
+          <ul className="space-y-2">
+            {d.materias.map((m, i) => (
+              <li key={i} className="rounded-xl bg-white p-3">
+                <div className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-sm font-bold text-pink-800">{m.nome}</span>
+                  {m.periodo && (
+                    <span className="text-[10px] text-pink-400">{m.periodo}</span>
+                  )}
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {m.nota_final !== null ? `nota ${m.nota_final}` : "sem nota"}
+                    {" · "}
+                    {m.faltas} falta{m.faltas === 1 ? "" : "s"}
+                    {m.avaliacoes > 0 && ` · ${m.avaliacoes} avaliações`}
+                  </span>
+                </div>
+                {m.anotacoes && (
+                  <p className="mt-2 flex gap-1.5 whitespace-pre-wrap rounded-lg bg-pink-50/70 p-2 text-xs leading-relaxed text-pink-700">
+                    <NotebookPen className="mt-0.5 h-3 w-3 shrink-0 text-pink-400" />
+                    <span>{m.anotacoes}</span>
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Grupo>
+      )}
+
+      {d.baralhos.length > 0 && (
+        <Grupo titulo={`Baralhos (${d.baralhos.length})`}>
+          <ul className="space-y-2">
+            {d.baralhos.map((b, i) => (
+              <li key={i} className="rounded-xl bg-white p-3">
+                <p className="text-sm font-bold text-pink-800">
+                  {b.titulo}{" "}
+                  <span className="text-xs font-normal text-muted-foreground">
+                    · {b.cards.length} cartão{b.cards.length === 1 ? "" : "es"}
+                  </span>
+                </p>
+                {b.cards.length > 0 && (
+                  <ul className="mt-2 space-y-1.5">
+                    {b.cards.map((c, j) => (
+                      <li key={j} className="rounded-lg bg-pink-50/70 p-2 text-xs">
+                        <p className="font-medium text-pink-800">
+                          {c.tem_imagem && "🖼 "}
+                          {c.pergunta}
+                        </p>
+                        <p className="mt-0.5 text-pink-500">{c.resposta}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Grupo>
+      )}
+
+      {d.provas.length > 0 && (
+        <Grupo titulo={`Últimas provas (${d.provas.length})`}>
+          <ul className="space-y-1.5">
+            {d.provas.map((p, i) => (
+              <li
+                key={i}
+                className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs"
+              >
+                <span className="min-w-0 flex-1 truncate text-pink-800">
+                  {p.nome}
+                  {p.tipo !== "quiz" && (
+                    <span className="ml-1 text-[10px] text-pink-400">(treino)</span>
+                  )}
+                </span>
+                <span className="shrink-0 text-muted-foreground">
+                  {p.acertos}/{p.total}
+                </span>
+                <span
+                  className={`w-8 shrink-0 text-right font-bold ${
+                    p.nota >= 7
+                      ? "text-emerald-600"
+                      : p.nota >= 5
+                        ? "text-amber-600"
+                        : "text-rose-500"
+                  }`}
+                >
+                  {p.nota.toFixed(1)}
+                </span>
+                <span className="w-16 shrink-0 text-right text-[10px] text-muted-foreground">
+                  {tempoRelativo(p.data)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Grupo>
+      )}
+    </div>
+  );
+}
+
+function Grupo({
+  titulo,
+  children,
+}: {
+  titulo: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-pink-400">
+        {titulo}
+      </p>
+      {children}
     </div>
   );
 }

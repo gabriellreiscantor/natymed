@@ -113,3 +113,46 @@ export function tempoRelativo(iso: string | null): string {
   if (dias < 30) return `há ${dias} dias`;
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
+
+// ---------- Conteúdo escrito por cada aluna ----------
+
+export interface MateriaAdmin {
+  nome: string;
+  periodo: string | null;
+  nota_final: number | null;
+  media_para_passar: number;
+  faltas: number;
+  total_aulas: number;
+  anotacoes: string | null;
+  avaliacoes: number;
+}
+
+export interface BaralhoAdmin {
+  titulo: string;
+  criado_em: string;
+  cards: Array<{ pergunta: string; resposta: string; tem_imagem: boolean }>;
+}
+
+export interface ProvaAdmin {
+  nome: string;
+  nota: number;
+  acertos: number;
+  total: number;
+  data: string;
+  tipo: string;
+}
+
+export interface DetalheAluna {
+  materias: MateriaAdmin[];
+  baralhos: BaralhoAdmin[];
+  provas: ProvaAdmin[];
+}
+
+/** Carregado só ao abrir uma pessoa: não pesa a listagem. */
+export async function carregarDetalheAluna(id: string): Promise<DetalheAluna> {
+  const { data, error } = await supabase.rpc("admin_aluna_detalhe", {
+    p_id: id,
+  });
+  trata(error);
+  return data as unknown as DetalheAluna;
+}

@@ -127,3 +127,43 @@ BEGIN
 END $function$;
 revoke all on function public.admin_atividade(integer) from public, anon;
 grant execute on function public.admin_atividade(integer) to authenticated;
+
+-- Conteúdo escrito por cada aluna, para o painel do dono.
+-- Carregado só quando ele abre uma pessoa específica, não na listagem.
+create or replace function public.admin_aluna_detalhe(p_id uuid)
+returns json language plpgsql stable security definer set search_path to 'public'
+as $function$
+BEGIN
+  IF NOT auth_utils.is_superadmin() THEN
+    RAISE EXCEPTION 'Acesso restrito.' USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  RETURN json_build_object(
+    'materias', coalesce((
+      select json_agg(x order by x.criado_em) from (
+        select m.nome, m.periodo, m.nota_final, m.media_para_passar,
+               m.faltas, m.total_aulas, m.anotacoes, m.criado_em,
+               (select count(*) from avaliacoes a where a.materia_id = m.id) as avaliacoes
+        from materias m where m.perfil_id = p_id
+      ) x), '[]'::json),
+    'baralhos', coalesce((
+      select json_agg(y order by y.criado_em) from (
+        select b.titulo, b.criado_em,
+               coalesce((
+                 select json_agg(json_build_object(
+                   'pergunta', f.pergunta, 'resposta', f.resposta,
+                   'tem_imagem', f.imagem_url is not null
+                 ) order by f.criado_em)
+                 from flashcards f where f.baralho_id = b.id
+               ), '[]'::json) as cards
+        from flashcard_baralhos b where b.perfil_id = p_id
+      ) y), '[]'::json),
+    'provas', coalesce((
+      select json_agg(z order by z.data desc) from (
+        select h.nome, h.nota, h.acertos, h.total, h.data, h.tipo
+        from historico h where h.perfil_id = p_id
+        order by h.data desc limit 20
+      ) z), '[]'::json)
+  );
+END $function$;
+revoke all on function public.admin_aluna_detalhe(uuid) from public, anon;
+grant execute on function public.admin_aluna_detalhe(uuid) to authenticated;
