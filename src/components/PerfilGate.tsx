@@ -5,6 +5,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { requestOtp, verifyOtp } from "@/lib/otp.functions";
 import { useServerFn } from "@tanstack/react-start";
 
+/**
+ * A tela pede DD/MM/AAAA (o formato que a gente digita sem pensar), mas o
+ * banco guarda em AAAA-MM-DD. Data incompleta ou impossível vira undefined:
+ * é campo opcional e não pode impedir ninguém de se cadastrar.
+ */
+function paraDataISO(valor: string): string | undefined {
+  const m = valor.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return undefined;
+  const [, dia, mes, ano] = m;
+  const d = new Date(`${ano}-${mes}-${dia}T00:00:00`);
+  // Rejeita 31/02 e parecidos: o Date "conserta" sozinho para março.
+  if (
+    Number.isNaN(d.getTime()) ||
+    d.getDate() !== Number(dia) ||
+    d.getMonth() + 1 !== Number(mes)
+  ) {
+    return undefined;
+  }
+  return `${ano}-${mes}-${dia}`;
+}
+
 export function PerfilGate({ children }: { children: ReactNode }) {
   const { perfil, carregado } = usePerfilAtivo();
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -52,7 +73,7 @@ export function PerfilGate({ children }: { children: ReactNode }) {
           email: email.trim(),
           password,
           nome,
-          data_nascimento: nascimento || undefined,
+          data_nascimento: paraDataISO(nascimento),
           periodo: periodo.trim() || undefined,
         },
       });
