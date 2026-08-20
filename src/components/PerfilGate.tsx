@@ -4,27 +4,7 @@ import { usePerfilAtivo, refreshPerfil } from "@/lib/perfis-store";
 import { supabase } from "@/integrations/supabase/client";
 import { requestOtp, verifyOtp } from "@/lib/otp.functions";
 import { useServerFn } from "@tanstack/react-start";
-
-/**
- * A tela pede DD/MM/AAAA (o formato que a gente digita sem pensar), mas o
- * banco guarda em AAAA-MM-DD. Data incompleta ou impossível vira undefined:
- * é campo opcional e não pode impedir ninguém de se cadastrar.
- */
-function paraDataISO(valor: string): string | undefined {
-  const m = valor.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!m) return undefined;
-  const [, dia, mes, ano] = m;
-  const d = new Date(`${ano}-${mes}-${dia}T00:00:00`);
-  // Rejeita 31/02 e parecidos: o Date "conserta" sozinho para março.
-  if (
-    Number.isNaN(d.getTime()) ||
-    d.getDate() !== Number(dia) ||
-    d.getMonth() + 1 !== Number(mes)
-  ) {
-    return undefined;
-  }
-  return `${ano}-${mes}-${dia}`;
-}
+import { mascaraData, validarData } from "@/lib/data-br";
 
 export function PerfilGate({ children }: { children: ReactNode }) {
   const { perfil, carregado } = usePerfilAtivo();
@@ -33,6 +13,13 @@ export function PerfilGate({ children }: { children: ReactNode }) {
   const [password, setPassword] = useState("");
   const [nome, setNome] = useState("Dra. ");
   const [nascimento, setNascimento] = useState("");
+  const [tocouNascimento, setTocouNascimento] = useState(false);
+  const checagemData = validarData(nascimento);
+  const dataOk = !!checagemData.iso;
+  // Só acusa erro depois que ela sai do campo: enquanto digita "26/0" a data
+  // está incompleta, e ficar vermelho no meio da digitação é agressivo.
+  const mostrarErroData =
+    mode === "signup" && tocouNascimento && !dataOk && nascimento !== "";
   const [periodo, setPeriodo] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -67,13 +54,22 @@ export function PerfilGate({ children }: { children: ReactNode }) {
         throw new Error("As senhas não conferem.");
       }
 
+      // Barra aqui: melhor avisar antes de criar a conta do que deixar a
+      // aluna entrar com uma data errada e ter que consertar depois.
+      if (!checagemData.iso) {
+        setTocouNascimento(true);
+        throw new Error(
+          checagemData.erro ?? "Confira sua data de nascimento.",
+        );
+      }
+
       // No cadastro o código serve para confirmar que o e-mail é dela mesma.
       await triggerRequestOtp({
         data: {
           email: email.trim(),
           password,
           nome,
-          data_nascimento: paraDataISO(nascimento),
+          data_nascimento: checagemData.iso,
           periodo: periodo.trim() || undefined,
         },
       });
@@ -348,21 +344,26 @@ export function PerfilGate({ children }: { children: ReactNode }) {
                       <label className="text-[10px] font-bold uppercase tracking-widest text-pink-400 ml-4">Nascimento</label>
                       <input
                         type="text"
+                        inputMode="numeric"
                         required
                         value={nascimento}
-                        onChange={(e) => {
-                          let val = e.target.value.replace(/\D/g, "");
-                          if (val.length > 8) val = val.substring(0, 8);
-                          if (val.length > 4) {
-                            val = `${val.slice(0, 2)}/${val.slice(2, 4)}/${val.slice(4)}`;
-                          } else if (val.length > 2) {
-                            val = `${val.slice(0, 2)}/${val.slice(2)}`;
-                          }
-                          setNascimento(val);
-                        }}
+                        onChange={(e) => setNascimento(mascaraData(e.target.value))}
+                        onBlur={() => setTocouNascimento(true)}
                         placeholder="DD/MM/AAAA"
-                        className="w-full rounded-full border border-pink-100 bg-pink-50/30 px-6 py-3 text-pink-800 placeholder:text-pink-200 outline-none focus:border-pink-300 transition-all text-sm"
+                        aria-invalid={mostrarErroData}
+                        className={`w-full rounded-full border bg-pink-50/30 px-6 py-3 text-pink-800 placeholder:text-pink-200 outline-none transition-all text-sm ${
+                          mostrarErroData
+                            ? "border-rose-400 focus:border-rose-500"
+                            : dataOk
+                              ? "border-emerald-300 focus:border-emerald-400"
+                              : "border-pink-100 focus:border-pink-300"
+                        }`}
                       />
+                      {mostrarErroData && (
+                        <p className="ml-4 text-[11px] font-medium text-rose-500">
+                          {checagemData.erro}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-pink-400 ml-4">Período (Med)</label>
@@ -437,7 +438,7 @@ export function PerfilGate({ children }: { children: ReactNode }) {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (mode === "signup" && !dataOk)}
                 className="w-full rounded-full bg-pink-500 py-4 font-bold text-white shadow-lg shadow-pink-200 transition-all hover:bg-pink-600 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
               >
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Send className="h-4 w-4" /> {mode === "login" ? "Entrar" : "Criar Conta"}</>}

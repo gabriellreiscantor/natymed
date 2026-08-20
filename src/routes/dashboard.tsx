@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { alertarBonito, confirmarBonito } from "@/components/ConfirmDialog";
+import { CompletarNascimento } from "@/components/CompletarNascimento";
 import { useEffect, useRef, useState } from "react";
 import { BookOpen, FileText, Loader2, RotateCcw, Upload, Users, Check, X, Sparkles } from "lucide-react";
 import { usePerfilAtivo, listAllProfiles, acceptProfile, revokeProfile, rejectProfile, undoRejectProfile, countPendentes, assinarPerfisRealtime } from "@/lib/perfis-store";
@@ -111,6 +112,7 @@ function Index() {
 
   return (
     <div className="min-h-[calc(100vh-160px)] py-10 sm:py-16">
+      {perfil && <CompletarNascimento perfil={perfil} />}
       <div className="mx-auto max-w-5xl px-4">
         {/* Cabeçalho do Dashboard */}
         <div className="flex flex-col items-center text-center mb-12">
