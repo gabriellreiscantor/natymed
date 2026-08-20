@@ -20,7 +20,6 @@ export interface StudyListItem {
   criado_em: string;
   perfil_id: string | null;
   compartilhado: boolean;
-  modulo_id: string | null;
   dono_nome?: string | null;
   dono_foto?: string | null;
 }
@@ -191,7 +190,7 @@ export async function listMeusEstudos(): Promise<StudyListItem[]> {
   if (!perfilId) return [];
   const { data, error } = await supabase
     .from("estudos")
-    .select("id, nome, criado_em, perfil_id, compartilhado, modulo_id")
+    .select("id, nome, criado_em, perfil_id, compartilhado")
     .eq("perfil_id", perfilId)
     .order("criado_em", { ascending: false });
   if (error) return [];
@@ -201,7 +200,6 @@ export async function listMeusEstudos(): Promise<StudyListItem[]> {
     criado_em: e.criado_em,
     perfil_id: e.perfil_id ?? null,
     compartilhado: !!e.compartilhado,
-    modulo_id: (e as any).modulo_id ?? null,
   }));
 }
 
@@ -209,7 +207,7 @@ export async function listCompartilhados(): Promise<StudyListItem[]> {
   const perfilId = await getPerfilAtivoId();
   const { data, error } = await supabase
     .from("estudos")
-    .select("id, nome, criado_em, perfil_id, compartilhado, modulo_id")
+    .select("id, nome, criado_em, perfil_id, compartilhado")
     .eq("compartilhado", true)
     .order("criado_em", { ascending: false });
   if (error) return [];
@@ -221,7 +219,6 @@ export async function listCompartilhados(): Promise<StudyListItem[]> {
     criado_em: e.criado_em,
     perfil_id: e.perfil_id ?? null,
     compartilhado: true,
-    modulo_id: (e as any).modulo_id ?? null,
     dono_nome: e.perfil_id ? donos.get(e.perfil_id)?.nome ?? null : null,
     dono_foto: e.perfil_id ? donos.get(e.perfil_id)?.foto_url ?? null : null,
   }));
@@ -471,6 +468,22 @@ export async function saveResumos(
   const { error } = await supabase
     .from("estudos")
     .update({ resumos: resumos as unknown as Json })
+    .eq("id", estudoId);
+  if (error) throw new Error(error.message);
+  emit();
+}
+
+/**
+ * Regrava a lista de questões (usado para mudar a pasta de uma questão).
+ * Só a dona do estudo consegue; o banco também exige.
+ */
+export async function saveQuestoes(
+  estudoId: string,
+  questoes: ParsedPdf["questoes"],
+): Promise<void> {
+  const { error } = await supabase
+    .from("estudos")
+    .update({ questoes: questoes as unknown as Json })
     .eq("id", estudoId);
   if (error) throw new Error(error.message);
   emit();

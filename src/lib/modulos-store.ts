@@ -2,11 +2,15 @@ import { supabase } from "@/integrations/supabase/client";
 
 const EVENT = "modulos:atualizado";
 
+/** Cada tela tem as próprias pastas: não se misturam entre si. */
+export type Secao = "resumos" | "questoes" | "flashcards";
+
 export interface Modulo {
   id: string;
   nome: string;
   cor: string;
   ordem: number;
+  secao: Secao;
   criado_em: string;
 }
 
@@ -34,10 +38,11 @@ export function onModulosChange(cb: () => void) {
   return () => window.removeEventListener(EVENT, cb);
 }
 
-export async function listModulos(): Promise<Modulo[]> {
+export async function listModulos(secao: Secao): Promise<Modulo[]> {
   const { data, error } = await supabase
     .from("modulos")
-    .select("id, nome, cor, ordem, criado_em")
+    .select("id, nome, cor, ordem, secao, criado_em")
+    .eq("secao", secao)
     .order("ordem", { ascending: true })
     .order("criado_em", { ascending: true });
   if (error) {
@@ -47,11 +52,16 @@ export async function listModulos(): Promise<Modulo[]> {
   return (data ?? []) as Modulo[];
 }
 
-export async function createModulo(nome: string, cor: string): Promise<void> {
-  // Novo módulo entra no fim da lista.
+export async function createModulo(
+  nome: string,
+  cor: string,
+  secao: Secao,
+): Promise<void> {
+  // Novo módulo entra no fim da lista da própria seção.
   const { data: ultimo } = await supabase
     .from("modulos")
     .select("ordem")
+    .eq("secao", secao)
     .order("ordem", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -59,6 +69,7 @@ export async function createModulo(nome: string, cor: string): Promise<void> {
   const { error } = await supabase.from("modulos").insert({
     nome,
     cor,
+    secao,
     ordem: (ultimo?.ordem ?? 0) + 1,
   });
   if (error) throw new Error(error.message);
@@ -90,22 +101,6 @@ export async function moverModulo(id: string, direcao: -1 | 1, lista: Modulo[]) 
     updateModulo(lista[i].id, { ordem: lista[j].ordem }),
     updateModulo(lista[j].id, { ordem: lista[i].ordem }),
   ]);
-}
-
-/** Marca (ou desmarca, com null) o módulo de um material. */
-export async function setModuloDoEstudo(
-  estudoId: string,
-  moduloId: string | null,
-): Promise<void> {
-  const { error } = await supabase
-    .from("estudos")
-    .update({ modulo_id: moduloId })
-    .eq("id", estudoId);
-  if (error) throw new Error(error.message);
-  emit();
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event("estudo:atualizado"));
-  }
 }
 
 export async function setModuloDoBaralho(

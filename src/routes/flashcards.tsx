@@ -45,7 +45,7 @@ import {
 } from "@/lib/flashcards-store";
 import { usePerfilAtivo } from "@/lib/perfis-store";
 import { uploadImagemFlashcard } from "@/lib/upload-avatar";
-import { EtiquetaModulo } from "@/components/Modulos";
+import { EtiquetaModulo, GerenciarModulos } from "@/components/Modulos";
 import {
   listModulos,
   onModulosChange,
@@ -198,8 +198,12 @@ function CartoesTab({ perfil }: { perfil: Perfil | null }) {
   };
 
   const [modulosMeus, setModulosMeus] = useState<Modulo[]>([]);
+  const [gerenciandoPastas, setGerenciandoPastas] = useState(false);
+  // O tipo Perfil daqui é o reduzido do flashcards-store (sem is_admin),
+  // então a permissão vem do perfil global.
+  const { perfil: perfilGlobalCards } = usePerfilAtivo();
   useEffect(() => {
-    const carregar = () => listModulos().then(setModulosMeus);
+    const carregar = () => listModulos("flashcards").then(setModulosMeus);
     carregar();
     return onModulosChange(carregar);
   }, []);
@@ -216,6 +220,22 @@ function CartoesTab({ perfil }: { perfil: Perfil | null }) {
 
   return (
     <div className="space-y-6">
+      {perfilGlobalCards?.is_admin && (
+        <div>
+          <button
+            onClick={() => setGerenciandoPastas((g) => !g)}
+            className="rounded-full border border-pink-200 bg-white px-3 py-1.5 text-xs font-bold text-pink-600 hover:bg-pink-50"
+          >
+            {gerenciandoPastas ? "Fechar pastas" : "Organizar pastas"}
+          </button>
+          {gerenciandoPastas && (
+            <div className="mt-3">
+              <GerenciarModulos secao="flashcards" />
+            </div>
+          )}
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="font-serif text-xl">Novo baralho</CardTitle>
@@ -604,7 +624,7 @@ function JogarTab({ perfil }: { perfil: Perfil | null }) {
   }, [refresh]);
 
   useEffect(() => {
-    const carregar = () => listModulos().then(setModulos);
+    const carregar = () => listModulos("flashcards").then(setModulos);
     carregar();
     return onModulosChange(carregar);
   }, []);

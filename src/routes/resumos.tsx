@@ -23,6 +23,13 @@ import {
   type ResumoMarca,
 } from "@/lib/study-store";
 import { usePerfilAtivo } from "@/lib/perfis-store";
+import {
+  EtiquetaModulo,
+  FiltroModulos,
+  GerenciarModulos,
+  SeletorModulo,
+} from "@/components/Modulos";
+import { listModulos, onModulosChange, type Modulo } from "@/lib/modulos-store";
 import { alertarBonito } from "@/components/ConfirmDialog";
 import { StudyPicker } from "@/components/StudyPicker";
 
@@ -42,6 +49,31 @@ function ResumosPage() {
   const { perfil } = usePerfilAtivo();
   // Só quem enviou o material pode mexer nele: ele é o mesmo para todas.
   const podeEditar = !!perfil && !!current && current.perfil_id === perfil.id;
+  const [modulos, setModulos] = useState<Modulo[]>([]);
+  const [filtroModulo, setFiltroModulo] = useState<string | null>(null);
+  const [gerenciando, setGerenciando] = useState(false);
+
+  useEffect(() => {
+    const carregar = () => listModulos("resumos").then(setModulos);
+    carregar();
+    return onModulosChange(carregar);
+  }, []);
+
+  /** Muda a pasta de um resumo. A pasta vive dentro do próprio item. */
+  async function mudarPasta(indice: number, moduloId: string | null) {
+    if (!current) return;
+    const novos = current.resumos.map((r, i) =>
+      i === indice ? { ...r, modulo_id: moduloId } : r,
+    );
+    const anterior = current;
+    setCurrent({ ...current, resumos: novos });
+    try {
+      await saveResumos(current.id, novos);
+    } catch (e) {
+      setCurrent(anterior);
+      alertarBonito("Não consegui mudar a pasta. 🌷");
+    }
+  }
 
   useEffect(() => {
     const refresh = () => {
@@ -65,7 +97,9 @@ function ResumosPage() {
     dados: { titulo: string; texto: string },
   ) {
     if (!current) return;
-    const novos = current.resumos.map((r, i) => (i === indice ? dados : r));
+    const novos = current.resumos.map((r, i) =>
+      i === indice ? { ...r, ...dados } : r,
+    );
     // Atualiza a tela na hora; se o banco recusar, voltamos ao que estava.
     const anterior = current;
     setCurrent({ ...current, resumos: novos });
@@ -134,6 +168,29 @@ function ResumosPage() {
             {current.nome}
           </p>
 
+          {podeEditar && (
+            <div className="mb-4">
+              <button
+                onClick={() => setGerenciando((g) => !g)}
+                className="rounded-full border border-pink-200 bg-white px-3 py-1.5 text-xs font-bold text-pink-600 hover:bg-pink-50"
+              >
+                {gerenciando ? "Fechar pastas" : "Organizar pastas"}
+              </button>
+              {gerenciando && (
+                <div className="mt-3">
+                  <GerenciarModulos secao="resumos" />
+                </div>
+              )}
+            </div>
+          )}
+
+          <FiltroModulos
+            modulos={modulos}
+            itens={current.resumos}
+            filtro={filtroModulo}
+            onFiltrar={setFiltroModulo}
+          />
+
           <FiltroResumos
             filtro={filtro}
             onMudar={setFiltro}
@@ -149,6 +206,13 @@ function ResumosPage() {
               const marca = marcas.get(i);
               if (filtro === "nao_lidos" && marca?.lido) return null;
               if (filtro === "favoritos" && !marca?.favorito) return null;
+              if (filtroModulo === "__sem__" && r.modulo_id) return null;
+              if (
+                filtroModulo &&
+                filtroModulo !== "__sem__" &&
+                r.modulo_id !== filtroModulo
+              )
+                return null;
               return (
                 <ResumoCard
                   key={i}
@@ -158,6 +222,9 @@ function ResumosPage() {
                   lido={!!marca?.lido}
                   favorito={!!marca?.favorito}
                   podeEditar={podeEditar}
+                  modulos={modulos}
+                  moduloId={r.modulo_id ?? null}
+                  onMudarPasta={(id) => mudarPasta(i, id)}
                   onSalvar={(dados) => salvarResumo(i, dados)}
                   onAlterar={(patch) => alterarMarca(i, patch)}
                 />
@@ -275,6 +342,9 @@ function ResumoCard({
   lido,
   favorito,
   podeEditar,
+  modulos,
+  moduloId,
+  onMudarPasta,
   onSalvar,
   onAlterar,
 }: {
@@ -284,6 +354,9 @@ function ResumoCard({
   lido: boolean;
   favorito: boolean;
   podeEditar: boolean;
+  modulos: Modulo[];
+  moduloId: string | null;
+  onMudarPasta: (id: string | null) => void;
   onSalvar: (dados: { titulo: string; texto: string }) => Promise<void>;
   onAlterar: (patch: { lido?: boolean; favorito?: boolean }) => void;
 }) {
@@ -395,6 +468,17 @@ function ResumoCard({
             <h2 className="mt-0.5 font-serif text-2xl leading-tight text-foreground">
               {titulo}
             </h2>
+            <div className="mt-1.5">
+              {podeEditar ? (
+                <SeletorModulo
+                  modulos={modulos}
+                  valor={moduloId}
+                  onMudar={onMudarPasta}
+                />
+              ) : (
+                <EtiquetaModulo modulo={modulos.find((m) => m.id === moduloId)} />
+              )}
+            </div>
           </div>
           {podeEditar && (
             <button

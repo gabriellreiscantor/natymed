@@ -77,6 +77,12 @@ async function loadPdfJs() {
 export interface Resumo {
   titulo: string;
   texto: string;
+  /**
+   * Pasta a que este resumo pertence. Fica dentro do próprio item para
+   * acompanhá-lo mesmo se a ordem da lista mudar — guardar por posição
+   * quebraria ao editar ou acrescentar resumos.
+   */
+  modulo_id?: string | null;
 }
 
 export interface Questao {
@@ -84,6 +90,8 @@ export interface Questao {
   alternativas: { letra: string; texto: string }[];
   gabarito: string;
   explicacao: string;
+  /** Pasta desta questão. Independente da pasta dos resumos. */
+  modulo_id?: string | null;
 }
 
 export interface ParsedPdf {

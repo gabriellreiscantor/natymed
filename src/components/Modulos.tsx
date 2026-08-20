@@ -11,6 +11,7 @@ import {
   onModulosChange,
   updateModulo,
   type Modulo,
+  type Secao,
 } from "@/lib/modulos-store";
 
 /** Bolinha colorida + nome. Usada em todas as telas que mostram módulo. */
@@ -36,8 +37,18 @@ export function EtiquetaModulo({
   );
 }
 
-/** Painel de criação e edição. Só a Naty enxerga (o banco também exige). */
-export function GerenciarModulos() {
+const TITULOS: Record<Secao, string> = {
+  resumos: "Pastas dos resumos",
+  questoes: "Pastas das questões",
+  flashcards: "Pastas dos flashcards",
+};
+
+/**
+ * Painel de criação e edição das pastas de UMA seção.
+ * Cada tela tem as suas: as pastas dos resumos não aparecem nas questões.
+ * Só a Naty enxerga (o banco também exige).
+ */
+export function GerenciarModulos({ secao }: { secao: Secao }) {
   const [modulos, setModulos] = useState<Modulo[]>([]);
   const [nome, setNome] = useState("");
   const [cor, setCor] = useState<string>(CORES_MODULO[0]);
@@ -45,12 +56,12 @@ export function GerenciarModulos() {
   const [editando, setEditando] = useState<string | null>(null);
   const [rascunho, setRascunho] = useState("");
 
-  const recarregar = () => listModulos().then(setModulos);
+  const recarregar = () => listModulos(secao).then(setModulos);
 
   useEffect(() => {
     recarregar();
     return onModulosChange(recarregar);
-  }, []);
+  }, [secao]);
 
   async function adicionar(e: React.FormEvent) {
     e.preventDefault();
@@ -58,7 +69,7 @@ export function GerenciarModulos() {
     if (!n || salvando) return;
     setSalvando(true);
     try {
-      await createModulo(n, cor);
+      await createModulo(n, cor, secao);
       setNome("");
       // Próxima cor da paleta, para os módulos não saírem todos iguais.
       const i = CORES_MODULO.indexOf(cor as (typeof CORES_MODULO)[number]);
@@ -76,8 +87,8 @@ export function GerenciarModulos() {
     const ok = await confirmarBonito({
       titulo: `Apagar "${m.nome}"?`,
       mensagem:
-        "O módulo some, mas nenhum material ou baralho é apagado — eles só ficam sem módulo e você pode reorganizar depois.",
-      confirmar: "Apagar módulo",
+        "A pasta some, mas nada é apagado — os itens só ficam sem pasta e você pode reorganizar depois.",
+      confirmar: "Apagar pasta",
     });
     if (!ok) return;
     try {
@@ -93,12 +104,10 @@ export function GerenciarModulos() {
     <section className="rounded-3xl border border-pink-100 bg-white/70 p-5 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <FolderPlus className="h-4 w-4 text-pink-500" />
-        <h2 className="font-serif text-xl text-pink-800">Módulos</h2>
+        <h2 className="font-serif text-xl text-pink-800">{TITULOS[secao]}</h2>
       </div>
       <p className="mb-4 text-xs text-muted-foreground">
-        Pastas para organizar resumos, questões e flashcards. Como resumos e
-        questões vêm do mesmo PDF, marcar o módulo no material organiza as duas
-        telas de uma vez.
+        Estas pastas valem só para esta tela. Cada seção tem as suas.
       </p>
 
       <form onSubmit={adicionar} className="mb-5 space-y-3">
@@ -106,7 +115,7 @@ export function GerenciarModulos() {
           <input
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            placeholder="Nome do módulo (ex: Módulo 1 — Metabolismo)"
+            placeholder="Nome da pasta (ex: Módulo 1 — Metabolismo)"
             className="flex-1 rounded-full border border-pink-100 bg-pink-50/30 px-5 py-2.5 text-sm text-pink-800 outline-none placeholder:text-pink-300 focus:border-pink-300"
           />
           <button
@@ -143,7 +152,7 @@ export function GerenciarModulos() {
 
       {modulos.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-pink-200 p-6 text-center text-sm text-pink-400">
-          Nenhum módulo ainda. Crie o primeiro aí em cima! 🌸
+          Nenhuma pasta ainda. Crie a primeira aí em cima! 🌸
         </p>
       ) : (
         <ul className="space-y-2">
@@ -228,5 +237,99 @@ export function GerenciarModulos() {
         </ul>
       )}
     </section>
+  );
+}
+
+
+/** Selecionar a pasta de um item. Usado em resumos, questões e baralhos. */
+export function SeletorModulo({
+  modulos,
+  valor,
+  onMudar,
+  className = "",
+}: {
+  modulos: Modulo[];
+  valor: string | null | undefined;
+  onMudar: (id: string | null) => void;
+  className?: string;
+}) {
+  if (modulos.length === 0) return null;
+  return (
+    <select
+      value={valor ?? ""}
+      onChange={(e) => onMudar(e.target.value || null)}
+      title="Pasta"
+      className={`rounded-full border border-pink-200 bg-white px-2 py-1 text-[11px] text-pink-700 outline-none ${className}`}
+    >
+      <option value="">Sem pasta</option>
+      {modulos.map((m) => (
+        <option key={m.id} value={m.id}>
+          {m.nome}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/** Chips de filtro por pasta. Some sozinho quando não há pasta com conteúdo. */
+export function FiltroModulos({
+  modulos,
+  itens,
+  filtro,
+  onFiltrar,
+}: {
+  modulos: Modulo[];
+  itens: Array<{ modulo_id?: string | null }>;
+  filtro: string | null;
+  onFiltrar: (id: string | null) => void;
+}) {
+  const comConteudo = modulos.filter((m) =>
+    itens.some((i) => i.modulo_id === m.id),
+  );
+  const temSolto = itens.some((i) => !i.modulo_id);
+  if (comConteudo.length === 0) return null;
+
+  return (
+    <div className="mb-4 flex flex-wrap gap-1.5">
+      <button
+        onClick={() => onFiltrar(null)}
+        className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition ${
+          filtro === null
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-pink-200 bg-white text-pink-600 hover:bg-pink-50"
+        }`}
+      >
+        Todas
+      </button>
+      {comConteudo.map((m) => {
+        const ativo = filtro === m.id;
+        return (
+          <button
+            key={m.id}
+            onClick={() => onFiltrar(ativo ? null : m.id)}
+            className="rounded-full border px-2.5 py-1 text-[11px] font-bold transition"
+            style={
+              ativo
+                ? { backgroundColor: m.cor, borderColor: m.cor, color: "#fff" }
+                : { borderColor: `${m.cor}66`, color: m.cor }
+            }
+          >
+            {m.nome}
+          </button>
+        );
+      })}
+      {temSolto && (
+        <button
+          onClick={() => onFiltrar(filtro === "__sem__" ? null : "__sem__")}
+          className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition ${
+            filtro === "__sem__"
+              ? "border-slate-400 bg-slate-400 text-white"
+              : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+          }`}
+        >
+          Sem pasta
+        </button>
+      )}
+    </div>
   );
 }

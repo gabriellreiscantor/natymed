@@ -65,6 +65,7 @@ export type Database = {
           id: string
           nome: string
           ordem: number
+          secao: string
         }
         Insert: {
           cor?: string
@@ -73,6 +74,7 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
+          secao?: string
         }
         Update: {
           cor?: string
@@ -81,6 +83,7 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
+          secao?: string
         }
         Relationships: [
           {
@@ -152,7 +155,6 @@ export type Database = {
         Row: {
           compartilhado: boolean | null
           criado_em: string
-          modulo_id: string | null
           id: string
           nome: string
           perfil_id: string | null
@@ -162,7 +164,6 @@ export type Database = {
         Insert: {
           compartilhado?: boolean | null
           criado_em?: string
-          modulo_id?: string | null
           id?: string
           nome: string
           perfil_id?: string | null
@@ -172,7 +173,6 @@ export type Database = {
         Update: {
           compartilhado?: boolean | null
           criado_em?: string
-          modulo_id?: string | null
           id?: string
           nome?: string
           perfil_id?: string | null
