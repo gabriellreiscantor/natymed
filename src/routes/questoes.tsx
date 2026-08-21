@@ -1,7 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, FileText, RotateCcw, Target, Trophy, X } from "lucide-react";
+import { Check, FileText, Pencil, RotateCcw, Target, Trophy, X } from "lucide-react";
 import { PastasDeMateriais } from "@/components/PastasDeMateriais";
+import { AdminQuestoes } from "@/components/AdminQuestoes";
+import type { Questao } from "@/lib/pdf-parser";
 
 import {
   addHistory,
@@ -9,6 +11,7 @@ import {
   loadCurrent,
   loadProgresso,
   saveProgresso,
+  saveQuestoes,
   getRankingQuestoes,
   type CurrentStudy,
   type RankingQuestoes,
@@ -32,7 +35,7 @@ function QuestoesPage() {
   // Quando ela pede para treinar só o que errou, guardamos os índices dessas
   // questões. É uma rodada de treino: não mexe no progresso salvo do quiz.
   const [somenteErros, setSomenteErros] = useState<number[] | null>(null);
-  const [aba, setAba] = useState<"quiz" | "ranking">("quiz");
+  const [aba, setAba] = useState<"quiz" | "ranking" | "editar">("quiz");
   const [, setCarregando] = useState(true);
   const navigate = useNavigate();
   // Evita salvar antes de carregar o progresso remoto (não sobrescreve com {} vazio)
@@ -80,6 +83,22 @@ function QuestoesPage() {
       window.removeEventListener("estudo:atualizado", refresh);
     };
   }, [perfil?.id]);
+
+  // Só quem publicou o material escreve questões nele. Como apenas admin
+  // consegue criar material, isso já limita à Naty e ao Ghabriell.
+  const podeEditar = !!perfil && !!current && current.perfil_id === perfil.id;
+
+  async function salvarQuestoes(qs: Questao[]) {
+    if (!current) return;
+    const anterior = current;
+    setCurrent({ ...current, questoes: qs });
+    try {
+      await saveQuestoes(current.id, qs);
+    } catch (e) {
+      setCurrent(anterior);
+      throw e;
+    }
+  }
 
   const visiveis = useMemo(() => {
     if (!current) return [] as number[];
@@ -251,9 +270,44 @@ function QuestoesPage() {
           <Trophy className="h-4 w-4" />
           Ranking
         </button>
+        {podeEditar && (
+          <button
+            onClick={() => setAba("editar")}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 font-medium transition ${
+              aba === "editar"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-rose-dark"
+            }`}
+          >
+            <Pencil className="h-4 w-4" />
+            Editar
+          </button>
+        )}
       </div>
 
-      {aba === "ranking" ? (
+      {aba === "editar" && podeEditar ? (
+        <>
+          <PastasDeMateriais
+            secao="questoes"
+            currentId={current.id}
+            onPick={() => {}}
+          />
+          <div className="mb-4 rounded-2xl bg-pink-50/60 px-4 py-3 text-xs text-pink-700">
+            Você está editando <strong>{current.nome}</strong>. As alunas só
+            veem este material se ele estiver{" "}
+            {current.compartilhado ? (
+              <strong>compartilhado ✅</strong>
+            ) : (
+              <strong>compartilhado — hoje ele está privado 🔒</strong>
+            )}
+            . O botão de globo na lista acima liga e desliga isso.
+          </div>
+          <AdminQuestoes
+            questoes={current.questoes}
+            onSalvarTudo={salvarQuestoes}
+          />
+        </>
+      ) : aba === "ranking" ? (
         <RankingQuestoesSecao
           estudoId={current.id}
           estudoNome={current.nome}

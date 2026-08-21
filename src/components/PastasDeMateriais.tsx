@@ -7,6 +7,7 @@ import {
   Globe,
   Lock,
   Palette,
+  FilePlus,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -26,6 +27,7 @@ import {
   type Secao,
 } from "@/lib/modulos-store";
 import {
+  createStudy,
   deleteStudy,
   listCompartilhados,
   listMeusEstudos,
@@ -96,6 +98,29 @@ export function PastasDeMateriais({
 
   // Qual pasta está com o seletor de cor aberto.
   const [corAberta, setCorAberta] = useState<string | null>(null);
+
+  /**
+   * Material sem PDF: a Naty escreve as questões e os resumos na mão.
+   * Nasce compartilhado, igual ao que vem de PDF.
+   */
+  async function criarMaterialVazio() {
+    const nome = await promptBonito({
+      titulo: "Material do zero 📝",
+      mensagem: "Como você quer chamar? Depois é só escrever as questões.",
+      valorPadrao: "",
+    });
+    if (!nome?.trim()) return;
+    try {
+      const criado = await createStudy(nome.trim(), { resumos: [], questoes: [] });
+      setCurrentStudyId(criado.id);
+      onPick(criado.id);
+      window.dispatchEvent(new Event("estudo:atualizado"));
+    } catch (e) {
+      alertarBonito(
+        e instanceof Error ? e.message : "Não consegui criar o material. 🌷",
+      );
+    }
+  }
 
   async function criarPasta(e: React.FormEvent) {
     e.preventDefault();
@@ -212,13 +237,22 @@ export function PastasDeMateriais({
               </button>
             </form>
           ) : (
-            <button
-              onClick={() => setCriandoPasta(true)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-pink-200 bg-white px-3 py-1.5 text-xs font-bold text-pink-600 hover:bg-pink-50"
-            >
-              <FolderPlus className="h-3.5 w-3.5" />
-              Nova pasta
-            </button>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setCriandoPasta(true)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-pink-200 bg-white px-3 py-1.5 text-xs font-bold text-pink-600 hover:bg-pink-50"
+              >
+                <FolderPlus className="h-3.5 w-3.5" />
+                Nova pasta
+              </button>
+              <button
+                onClick={criarMaterialVazio}
+                className="inline-flex items-center gap-1.5 rounded-full border border-pink-200 bg-white px-3 py-1.5 text-xs font-bold text-pink-600 hover:bg-pink-50"
+              >
+                <FilePlus className="h-3.5 w-3.5" />
+                Material do zero
+              </button>
+            </div>
           )}
         </div>
       )}
